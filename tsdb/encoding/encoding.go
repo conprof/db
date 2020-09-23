@@ -39,6 +39,7 @@ func (e *Encbuf) Len() int    { return len(e.B) }
 
 func (e *Encbuf) PutString(s string) { e.B = append(e.B, s...) }
 func (e *Encbuf) PutByte(c byte)     { e.B = append(e.B, c) }
+func (e *Encbuf) PutBytes(b []byte)  { e.B = append(e.B, b...) }
 
 func (e *Encbuf) PutBE32int(x int)      { e.PutBE32(uint32(x)) }
 func (e *Encbuf) PutUvarint32(x uint32) { e.PutUvarint64(uint64(x)) }
@@ -77,6 +78,12 @@ func (e *Encbuf) PutHash(h hash.Hash) {
 	h.Reset()
 	e.WriteToHash(h)
 	e.PutHashSum(h)
+}
+
+// PutUvarintBytes writes a byte slice to the buffer prefixed by its varint length.
+func (e *Encbuf) PutUvarintBytes(b []byte) {
+	e.PutUvarint(len(b))
+	e.PutBytes(b)
 }
 
 // WriteToHash writes the current buffer contents to the given hash.

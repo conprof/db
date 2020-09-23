@@ -19,10 +19,10 @@ import (
 	"path/filepath"
 	"testing"
 
+	"github.com/conprof/db/tsdb/chunks"
+	"github.com/conprof/db/tsdb/fileutil"
+	"github.com/conprof/db/tsdb/index"
 	"github.com/prometheus/prometheus/pkg/labels"
-	"github.com/prometheus/prometheus/tsdb/chunks"
-	"github.com/prometheus/prometheus/tsdb/fileutil"
-	"github.com/prometheus/prometheus/tsdb/index"
 	"github.com/prometheus/prometheus/util/testutil"
 )
 

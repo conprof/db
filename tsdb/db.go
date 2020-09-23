@@ -29,21 +29,21 @@ import (
 	"sync"
 	"time"
 
+	"github.com/conprof/db/storage"
+	"github.com/conprof/db/tsdb/chunkenc"
+	tsdb_errors "github.com/conprof/db/tsdb/errors"
+	"github.com/conprof/db/tsdb/fileutil"
+	"github.com/conprof/db/tsdb/wal"
 	"github.com/go-kit/kit/log"
 	"github.com/go-kit/kit/log/level"
 	"github.com/oklog/ulid"
 	"github.com/pkg/errors"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/prometheus/pkg/labels"
-	"github.com/prometheus/prometheus/storage"
-	"github.com/prometheus/prometheus/tsdb/chunkenc"
-	tsdb_errors "github.com/prometheus/prometheus/tsdb/errors"
-	"github.com/prometheus/prometheus/tsdb/fileutil"
-	"github.com/prometheus/prometheus/tsdb/wal"
 	"golang.org/x/sync/errgroup"
 
 	// Load the package into main to make sure minium Go version is met.
-	_ "github.com/prometheus/prometheus/tsdb/goversion"
+	_ "github.com/conprof/db/tsdb/goversion"
 )
 
 const (

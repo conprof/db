@@ -14,6 +14,7 @@
 package tsdb
 
 import (
+	"bytes"
 	"context"
 	"fmt"
 	"math"
@@ -23,21 +24,21 @@ import (
 	"sync"
 	"time"
 
+	"github.com/conprof/db/storage"
+	"github.com/conprof/db/tsdb/chunkenc"
+	"github.com/conprof/db/tsdb/chunks"
+	tsdb_errors "github.com/conprof/db/tsdb/errors"
+	"github.com/conprof/db/tsdb/index"
+	"github.com/conprof/db/tsdb/record"
+	"github.com/conprof/db/tsdb/tombstones"
+	"github.com/conprof/db/tsdb/tsdbutil"
+	"github.com/conprof/db/tsdb/wal"
 	"github.com/go-kit/kit/log"
 	"github.com/go-kit/kit/log/level"
 	"github.com/oklog/ulid"
 	"github.com/pkg/errors"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/prometheus/pkg/labels"
-	"github.com/prometheus/prometheus/storage"
-	"github.com/prometheus/prometheus/tsdb/chunkenc"
-	"github.com/prometheus/prometheus/tsdb/chunks"
-	tsdb_errors "github.com/prometheus/prometheus/tsdb/errors"
-	"github.com/prometheus/prometheus/tsdb/index"
-	"github.com/prometheus/prometheus/tsdb/record"
-	"github.com/prometheus/prometheus/tsdb/tombstones"
-	"github.com/prometheus/prometheus/tsdb/tsdbutil"
-	"github.com/prometheus/prometheus/tsdb/wal"
 	"go.uber.org/atomic"
 )
 
@@ -981,7 +982,7 @@ type initAppender struct {
 	head *Head
 }
 
-func (a *initAppender) Add(lset labels.Labels, t int64, v float64) (uint64, error) {
+func (a *initAppender) Add(lset labels.Labels, t int64, v []byte) (uint64, error) {
 	if a.app != nil {
 		return a.app.Add(lset, t, v)
 	}
@@ -991,7 +992,7 @@ func (a *initAppender) Add(lset labels.Labels, t int64, v float64) (uint64, erro
 	return a.app.Add(lset, t, v)
 }
 
-func (a *initAppender) AddFast(ref uint64, t int64, v float64) error {
+func (a *initAppender) AddFast(ref uint64, t int64, v []byte) error {
 	if a.app == nil {
 		return storage.ErrNotFound
 	}
@@ -1103,7 +1104,7 @@ type headAppender struct {
 	closed                          bool
 }
 
-func (a *headAppender) Add(lset labels.Labels, t int64, v float64) (uint64, error) {
+func (a *headAppender) Add(lset labels.Labels, t int64, v []byte) (uint64, error) {
 	if t < a.minValidTime {
 		a.head.metrics.outOfBoundSamples.Inc()
 		return 0, storage.ErrOutOfBounds
@@ -1134,7 +1135,10 @@ func (a *headAppender) Add(lset labels.Labels, t int64, v float64) (uint64, erro
 	return s.ref, a.AddFast(s.ref, t, v)
 }
 
-func (a *headAppender) AddFast(ref uint64, t int64, v float64) error {
+func (a *headAppender) AddFast(ref uint64, t int64, v []byte) error {
+	safeValue := make([]byte, len(v))
+	copy(safeValue, v)
+
 	if t < a.minValidTime {
 		a.head.metrics.outOfBoundSamples.Inc()
 		return storage.ErrOutOfBounds
@@ -1145,7 +1149,7 @@ func (a *headAppender) AddFast(ref uint64, t int64, v float64) error {
 		return errors.Wrap(storage.ErrNotFound, "unknown series")
 	}
 	s.Lock()
-	if err := s.appendable(t, v); err != nil {
+	if err := s.appendable(t, safeValue); err != nil {
 		s.Unlock()
 		if err == storage.ErrOutOfOrderSample {
 			a.head.metrics.outOfOrderSamples.Inc()
@@ -1165,7 +1169,7 @@ func (a *headAppender) AddFast(ref uint64, t int64, v float64) error {
 	a.samples = append(a.samples, record.RefSample{
 		Ref: ref,
 		T:   t,
-		V:   v,
+		V:   safeValue,
 	})
 	a.sampleSeries = append(a.sampleSeries, s)
 	return nil
@@ -1902,12 +1906,12 @@ func (s *stripeSeries) getOrSet(hash uint64, series *memSeries) (*memSeries, boo
 
 type sample struct {
 	t int64
-	v float64
+	v []byte
 }
 
-func newSample(t int64, v float64) tsdbutil.Sample { return sample{t, v} }
-func (s sample) T() int64                          { return s.t }
-func (s sample) V() float64                        { return s.v }
+func newSample(t int64, v []byte) tsdbutil.Sample { return sample{t, v} }
+func (s sample) T() int64                         { return s.t }
+func (s sample) V() []byte                        { return s.v }
 
 // memSeries is the in-memory representation of a series. None of its methods
 // are goroutine safe and it is the caller's responsibility to lock it.
@@ -1966,7 +1970,7 @@ func (s *memSeries) cutNewHeadChunk(mint int64, chunkDiskMapper *chunks.ChunkDis
 	s.mmapCurrentHeadChunk(chunkDiskMapper)
 
 	s.headChunk = &memChunk{
-		chunk:   chunkenc.NewXORChunk(),
+		chunk:   chunkenc.NewBytesChunk(),
 		minTime: mint,
 		maxTime: math.MinInt64,
 	}
@@ -2004,7 +2008,7 @@ func (s *memSeries) mmapCurrentHeadChunk(chunkDiskMapper *chunks.ChunkDiskMapper
 }
 
 // appendable checks whether the given sample is valid for appending to the series.
-func (s *memSeries) appendable(t int64, v float64) error {
+func (s *memSeries) appendable(t int64, v []byte) error {
 	c := s.head()
 	if c == nil {
 		return nil
@@ -2018,7 +2022,7 @@ func (s *memSeries) appendable(t int64, v float64) error {
 	}
 	// We are allowing exact duplicates as we can encounter them in valid cases
 	// like federation and erroring out at that time would be extremely noisy.
-	if math.Float64bits(s.sampleBuf[3].v) != math.Float64bits(v) {
+	if !bytes.Equal(s.sampleBuf[3].v, v) {
 		return storage.ErrDuplicateSampleForTimestamp
 	}
 	return nil
@@ -2090,7 +2094,7 @@ func (s *memSeries) truncateChunksBefore(mint int64) (removed int) {
 // the appendID for isolation. (The appendID can be zero, which results in no
 // isolation for this append.)
 // It is unsafe to call this concurrently with s.iterator(...) without holding the series lock.
-func (s *memSeries) append(t int64, v float64, appendID uint64, chunkDiskMapper *chunks.ChunkDiskMapper) (sampleInOrder, chunkCreated bool) {
+func (s *memSeries) append(t int64, v []byte, appendID uint64, chunkDiskMapper *chunks.ChunkDiskMapper) (sampleInOrder, chunkCreated bool) {
 	// Based on Gorilla white papers this offers near-optimal compression ratio
 	// so anything bigger that this has diminishing returns and increases
 	// the time range within which we have to decompress all samples.
@@ -2306,7 +2310,7 @@ func (it *memSafeIterator) Next() bool {
 	return true
 }
 
-func (it *memSafeIterator) At() (int64, float64) {
+func (it *memSafeIterator) At() (int64, []byte) {
 	if it.total-it.i > 4 {
 		return it.Iterator.At()
 	}

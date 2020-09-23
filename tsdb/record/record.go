@@ -15,13 +15,12 @@
 package record
 
 import (
-	"math"
 	"sort"
 
+	"github.com/conprof/db/tsdb/encoding"
+	"github.com/conprof/db/tsdb/tombstones"
 	"github.com/pkg/errors"
 	"github.com/prometheus/prometheus/pkg/labels"
-	"github.com/prometheus/prometheus/tsdb/encoding"
-	"github.com/prometheus/prometheus/tsdb/tombstones"
 )
 
 // Type represents the data type of a record.
@@ -53,7 +52,7 @@ type RefSeries struct {
 type RefSample struct {
 	Ref uint64
 	T   int64
-	V   float64
+	V   []byte
 }
 
 // Decoder decodes series, sample, and tombstone records.
@@ -123,12 +122,12 @@ func (d *Decoder) Samples(rec []byte, samples []RefSample) ([]RefSample, error) 
 	for len(dec.B) > 0 && dec.Err() == nil {
 		dref := dec.Varint64()
 		dtime := dec.Varint64()
-		val := dec.Be64()
+		val := dec.UvarintBytes()
 
 		samples = append(samples, RefSample{
 			Ref: uint64(int64(baseRef) + dref),
 			T:   baseTime + dtime,
-			V:   math.Float64frombits(val),
+			V:   val,
 		})
 	}
 
@@ -206,7 +205,7 @@ func (e *Encoder) Samples(samples []RefSample, b []byte) []byte {
 	for _, s := range samples {
 		buf.PutVarint64(int64(s.Ref) - int64(first.Ref))
 		buf.PutVarint64(s.T - first.T)
-		buf.PutBE64(math.Float64bits(s.V))
+		buf.PutUvarintBytes(s.V)
 	}
 	return buf.Get()
 }

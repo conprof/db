@@ -26,11 +26,11 @@ import (
 	"testing"
 	"time"
 
+	"github.com/conprof/db/tsdb/record"
+	"github.com/conprof/db/tsdb/tombstones"
+	"github.com/conprof/db/tsdb/wal"
 	"github.com/go-kit/kit/log"
 	"github.com/prometheus/prometheus/pkg/labels"
-	"github.com/prometheus/prometheus/tsdb/record"
-	"github.com/prometheus/prometheus/tsdb/tombstones"
-	"github.com/prometheus/prometheus/tsdb/wal"
 	"github.com/prometheus/prometheus/util/testutil"
 )
 
@@ -235,10 +235,12 @@ func TestSegmentWAL_Log_Restore(t *testing.T) {
 			var stones []tombstones.Stone
 
 			for j := 0; j < i*10; j++ {
+				val := make([]byte, 4)
+				rand.Read(val)
 				samples = append(samples, record.RefSample{
 					Ref: uint64(j % 10000),
 					T:   int64(j * 2),
-					V:   rand.Float64(),
+					V:   val,
 				})
 			}
 
@@ -392,8 +394,8 @@ func TestWALRestoreCorrupted(t *testing.T) {
 			testutil.Ok(t, err)
 			defer func(wal *SegmentWAL) { testutil.Ok(t, wal.Close()) }(w)
 
-			testutil.Ok(t, w.LogSamples([]record.RefSample{{T: 1, V: 2}}))
-			testutil.Ok(t, w.LogSamples([]record.RefSample{{T: 2, V: 3}}))
+			testutil.Ok(t, w.LogSamples([]record.RefSample{{T: 1, V: []byte("2")}}))
+			testutil.Ok(t, w.LogSamples([]record.RefSample{{T: 2, V: []byte("3")}}))
 
 			testutil.Ok(t, w.cut())
 
@@ -402,8 +404,8 @@ func TestWALRestoreCorrupted(t *testing.T) {
 			// Hopefully cut will complete by 2 seconds.
 			time.Sleep(2 * time.Second)
 
-			testutil.Ok(t, w.LogSamples([]record.RefSample{{T: 3, V: 4}}))
-			testutil.Ok(t, w.LogSamples([]record.RefSample{{T: 5, V: 6}}))
+			testutil.Ok(t, w.LogSamples([]record.RefSample{{T: 3, V: []byte("4")}}))
+			testutil.Ok(t, w.LogSamples([]record.RefSample{{T: 5, V: []byte("6")}}))
 
 			testutil.Ok(t, w.Close())
 
@@ -433,16 +435,16 @@ func TestWALRestoreCorrupted(t *testing.T) {
 			i := 0
 			samplef := func(s []record.RefSample) {
 				if i == 0 {
-					testutil.Equals(t, []record.RefSample{{T: 1, V: 2}}, s)
+					testutil.Equals(t, []record.RefSample{{T: 1, V: []byte("2")}}, s)
 					i++
 				} else {
-					testutil.Equals(t, []record.RefSample{{T: 99, V: 100}}, s)
+					testutil.Equals(t, []record.RefSample{{T: 99, V: []byte("100")}}, s)
 				}
 			}
 
 			testutil.Ok(t, r.Read(serf, samplef, nil))
 
-			testutil.Ok(t, w2.LogSamples([]record.RefSample{{T: 99, V: 100}}))
+			testutil.Ok(t, w2.LogSamples([]record.RefSample{{T: 99, V: []byte("100")}}))
 			testutil.Ok(t, w2.Close())
 
 			// We should see the first valid entry and the new one, everything after
@@ -499,15 +501,15 @@ func TestMigrateWAL_Fuzz(t *testing.T) {
 		{Ref: 1, Labels: labels.FromStrings("abc", "def2", "1234", "4567")},
 	}))
 	testutil.Ok(t, oldWAL.LogSamples([]record.RefSample{
-		{Ref: 1, T: 100, V: 200},
-		{Ref: 2, T: 300, V: 400},
+		{Ref: 1, T: 100, V: []byte("200")},
+		{Ref: 2, T: 300, V: []byte("400")},
 	}))
 	testutil.Ok(t, oldWAL.LogSeries([]record.RefSeries{
 		{Ref: 200, Labels: labels.FromStrings("xyz", "def", "foo", "bar")},
 	}))
 	testutil.Ok(t, oldWAL.LogSamples([]record.RefSample{
-		{Ref: 3, T: 100, V: 200},
-		{Ref: 4, T: 300, V: 400},
+		{Ref: 3, T: 100, V: []byte("200")},
+		{Ref: 4, T: 300, V: []byte("400")},
 	}))
 	testutil.Ok(t, oldWAL.LogDeletes([]tombstones.Stone{
 		{Ref: 1, Intervals: []tombstones.Interval{{Mint: 100, Maxt: 200}}},
@@ -524,7 +526,7 @@ func TestMigrateWAL_Fuzz(t *testing.T) {
 	// We can properly write some new data after migration.
 	var enc record.Encoder
 	testutil.Ok(t, w.Log(enc.Samples([]record.RefSample{
-		{Ref: 500, T: 1, V: 1},
+		{Ref: 500, T: 1, V: []byte("1")},
 	}, nil)))
 
 	testutil.Ok(t, w.Close())
@@ -564,13 +566,13 @@ func TestMigrateWAL_Fuzz(t *testing.T) {
 			{Ref: 100, Labels: labels.FromStrings("abc", "def", "123", "456")},
 			{Ref: 1, Labels: labels.FromStrings("abc", "def2", "1234", "4567")},
 		},
-		[]record.RefSample{{Ref: 1, T: 100, V: 200}, {Ref: 2, T: 300, V: 400}},
+		[]record.RefSample{{Ref: 1, T: 100, V: []byte("200")}, {Ref: 2, T: 300, V: []byte("400")}},
 		[]record.RefSeries{
 			{Ref: 200, Labels: labels.FromStrings("xyz", "def", "foo", "bar")},
 		},
-		[]record.RefSample{{Ref: 3, T: 100, V: 200}, {Ref: 4, T: 300, V: 400}},
+		[]record.RefSample{{Ref: 3, T: 100, V: []byte("200")}, {Ref: 4, T: 300, V: []byte("400")}},
 		[]tombstones.Stone{{Ref: 1, Intervals: []tombstones.Interval{{Mint: 100, Maxt: 200}}}},
-		[]record.RefSample{{Ref: 500, T: 1, V: 1}},
+		[]record.RefSample{{Ref: 500, T: 1, V: []byte("1")}},
 	}, res)
 
 	// Migrating an already migrated WAL shouldn't do anything.

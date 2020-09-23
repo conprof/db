@@ -21,7 +21,7 @@ import (
 	"os"
 	"testing"
 
-	"github.com/prometheus/prometheus/tsdb/chunkenc"
+	"github.com/conprof/db/tsdb/chunkenc"
 	"github.com/prometheus/prometheus/util/testutil"
 )
 
@@ -379,12 +379,14 @@ func testHeadReadWriter(t *testing.T) *ChunkDiskMapper {
 }
 
 func randomChunk(t *testing.T) chunkenc.Chunk {
-	chunk := chunkenc.NewXORChunk()
+	chunk := chunkenc.NewBytesChunk()
 	len := rand.Int() % 120
 	app, err := chunk.Appender()
 	testutil.Ok(t, err)
+	val := make([]byte, 4)
 	for i := 0; i < len; i++ {
-		app.Append(rand.Int63(), rand.Float64())
+		rand.Read(val)
+		app.Append(rand.Int63(), val)
 	}
 	return chunk
 }

@@ -17,10 +17,10 @@ import (
 	"math"
 	"sort"
 
+	"github.com/conprof/db/tsdb/chunkenc"
+	"github.com/conprof/db/tsdb/chunks"
+	"github.com/conprof/db/tsdb/tsdbutil"
 	"github.com/prometheus/prometheus/pkg/labels"
-	"github.com/prometheus/prometheus/tsdb/chunkenc"
-	"github.com/prometheus/prometheus/tsdb/chunks"
-	"github.com/prometheus/prometheus/tsdb/tsdbutil"
 )
 
 type SeriesEntry struct {
@@ -85,7 +85,7 @@ func NewListSeriesIterator(samples Samples) chunkenc.Iterator {
 	return &listSeriesIterator{samples: samples, idx: -1}
 }
 
-func (it *listSeriesIterator) At() (int64, float64) {
+func (it *listSeriesIterator) At() (int64, []byte) {
 	s := it.samples.Get(it.idx)
 	return s.T(), s.V()
 }
@@ -219,7 +219,7 @@ type seriesToChunkEncoder struct {
 
 // TODO(bwplotka): Currently encoder will just naively build one chunk, without limit. Split it: https://github.com/prometheus/tsdb/issues/670
 func (s *seriesToChunkEncoder) Iterator() chunks.Iterator {
-	chk := chunkenc.NewXORChunk()
+	chk := chunkenc.NewBytesChunk()
 	app, err := chk.Appender()
 	if err != nil {
 		return errChunksIterator{err: err}
@@ -259,18 +259,14 @@ func (e errChunksIterator) Err() error      { return e.err }
 // ExpandSamples iterates over all samples in the iterator, buffering all in slice.
 // Optionally it takes samples constructor, useful when you want to compare sample slices with different
 // sample implementations. if nil, sample type from this package will be used.
-func ExpandSamples(iter chunkenc.Iterator, newSampleFn func(t int64, v float64) tsdbutil.Sample) ([]tsdbutil.Sample, error) {
+func ExpandSamples(iter chunkenc.Iterator, newSampleFn func(t int64, v []byte) tsdbutil.Sample) ([]tsdbutil.Sample, error) {
 	if newSampleFn == nil {
-		newSampleFn = func(t int64, v float64) tsdbutil.Sample { return sample{t, v} }
+		newSampleFn = func(t int64, v []byte) tsdbutil.Sample { return sample{t, v} }
 	}
 
 	var result []tsdbutil.Sample
 	for iter.Next() {
 		t, v := iter.At()
-		// NaNs can't be compared normally, so substitute for another value.
-		if math.IsNaN(v) {
-			v = -42
-		}
 		result = append(result, newSampleFn(t, v))
 	}
 	return result, iter.Err()

@@ -17,10 +17,10 @@ package record
 import (
 	"testing"
 
+	"github.com/conprof/db/tsdb/encoding"
+	"github.com/conprof/db/tsdb/tombstones"
 	"github.com/pkg/errors"
 	"github.com/prometheus/prometheus/pkg/labels"
-	"github.com/prometheus/prometheus/tsdb/encoding"
-	"github.com/prometheus/prometheus/tsdb/tombstones"
 	"github.com/prometheus/prometheus/util/testutil"
 )
 
@@ -45,9 +45,9 @@ func TestRecord_EncodeDecode(t *testing.T) {
 	testutil.Equals(t, series, decSeries)
 
 	samples := []RefSample{
-		{Ref: 0, T: 12423423, V: 1.2345},
-		{Ref: 123, T: -1231, V: -123},
-		{Ref: 2, T: 0, V: 99999},
+		{Ref: 0, T: 12423423, V: []byte("1.2345")},
+		{Ref: 123, T: -1231, V: []byte("-123")},
+		{Ref: 2, T: 0, V: []byte("99999")},
 	}
 	decSamples, err := dec.Samples(enc.Samples(samples, nil), nil)
 	testutil.Ok(t, err)
@@ -96,7 +96,7 @@ func TestRecord_Corrupted(t *testing.T) {
 
 	t.Run("Test corrupted sample record", func(t *testing.T) {
 		samples := []RefSample{
-			{Ref: 0, T: 12423423, V: 1.2345},
+			{Ref: 0, T: 12423423, V: []byte("1.2345")},
 		}
 
 		corrupted := enc.Samples(samples, nil)[:8]
@@ -126,7 +126,7 @@ func TestRecord_Type(t *testing.T) {
 	recordType := dec.Type(enc.Series(series, nil))
 	testutil.Equals(t, Series, recordType)
 
-	samples := []RefSample{{Ref: 123, T: 12345, V: 1.2345}}
+	samples := []RefSample{{Ref: 123, T: 12345, V: []byte("1.2345")}}
 	recordType = dec.Type(enc.Samples(samples, nil))
 	testutil.Equals(t, Samples, recordType)
 

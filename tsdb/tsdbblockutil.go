@@ -27,7 +27,7 @@ var ErrInvalidTimes = fmt.Errorf("max time is lesser than min time")
 
 type MetricSample struct {
 	TimestampMs int64
-	Value       float64
+	Value       []byte
 	Labels      labels.Labels
 }
 

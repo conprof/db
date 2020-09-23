@@ -23,7 +23,7 @@ import (
 	"path/filepath"
 	"testing"
 
-	"github.com/prometheus/prometheus/tsdb/fileutil"
+	"github.com/conprof/db/tsdb/fileutil"
 	"go.uber.org/goleak"
 
 	client_testutil "github.com/prometheus/client_golang/prometheus/testutil"

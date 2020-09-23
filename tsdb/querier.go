@@ -19,14 +19,14 @@ import (
 	"strings"
 	"unicode/utf8"
 
+	"github.com/conprof/db/storage"
+	"github.com/conprof/db/tsdb/chunkenc"
+	"github.com/conprof/db/tsdb/chunks"
+	tsdb_errors "github.com/conprof/db/tsdb/errors"
+	"github.com/conprof/db/tsdb/index"
+	"github.com/conprof/db/tsdb/tombstones"
 	"github.com/pkg/errors"
 	"github.com/prometheus/prometheus/pkg/labels"
-	"github.com/prometheus/prometheus/storage"
-	"github.com/prometheus/prometheus/tsdb/chunkenc"
-	"github.com/prometheus/prometheus/tsdb/chunks"
-	tsdb_errors "github.com/prometheus/prometheus/tsdb/errors"
-	"github.com/prometheus/prometheus/tsdb/index"
-	"github.com/prometheus/prometheus/tsdb/tombstones"
 )
 
 // Bitmap used by func isRegexMetaCharacter to check whether a character needs to be escaped.
@@ -584,7 +584,7 @@ func (p *populateWithDelSeriesIterator) Seek(t int64) bool {
 	return false
 }
 
-func (p *populateWithDelSeriesIterator) At() (int64, float64) { return p.curr.At() }
+func (p *populateWithDelSeriesIterator) At() (int64, []byte) { return p.curr.At() }
 
 func (p *populateWithDelSeriesIterator) Err() error {
 	if err := p.populateWithDelGenericSeriesIterator.Err(); err != nil {
@@ -613,7 +613,7 @@ func (p *populateWithDelChunkSeriesIterator) Next() bool {
 	}
 
 	// Re-encode the chunk if iterator is provider. This means that it has some samples to be deleted or chunk is opened.
-	newChunk := chunkenc.NewXORChunk()
+	newChunk := chunkenc.NewBytesChunk()
 	app, err := newChunk.Appender()
 	if err != nil {
 		p.err = err
@@ -767,7 +767,7 @@ type deletedIterator struct {
 	intervals tombstones.Intervals
 }
 
-func (it *deletedIterator) At() (int64, float64) {
+func (it *deletedIterator) At() (int64, []byte) {
 	return it.it.At()
 }
 

@@ -25,13 +25,13 @@ import (
 	"strconv"
 	"testing"
 
+	"github.com/conprof/db/storage"
+	"github.com/conprof/db/tsdb/chunks"
+	"github.com/conprof/db/tsdb/fileutil"
+	"github.com/conprof/db/tsdb/tsdbutil"
+	"github.com/conprof/db/tsdb/wal"
 	"github.com/go-kit/kit/log"
 	"github.com/prometheus/prometheus/pkg/labels"
-	"github.com/prometheus/prometheus/storage"
-	"github.com/prometheus/prometheus/tsdb/chunks"
-	"github.com/prometheus/prometheus/tsdb/fileutil"
-	"github.com/prometheus/prometheus/tsdb/tsdbutil"
-	"github.com/prometheus/prometheus/tsdb/wal"
 	"github.com/prometheus/prometheus/util/testutil"
 )
 
@@ -176,7 +176,7 @@ func TestCorruptedChunk(t *testing.T) {
 				testutil.Ok(t, os.RemoveAll(tmpdir))
 			}()
 
-			series := storage.NewListSeries(labels.FromStrings("a", "b"), []tsdbutil.Sample{sample{1, 1}})
+			series := storage.NewListSeries(labels.FromStrings("a", "b"), []tsdbutil.Sample{sample{1, []byte("1")}})
 			blockDir := createBlock(t, tmpdir, []storage.Series{series})
 			files, err := sequenceFiles(chunkDir(blockDir))
 			testutil.Ok(t, err)
@@ -289,14 +289,14 @@ func TestReadIndexFormatV1(t *testing.T) {
 	q, err := NewBlockQuerier(block, 0, 1000)
 	testutil.Ok(t, err)
 	testutil.Equals(t, query(t, q, labels.MustNewMatcher(labels.MatchEqual, "foo", "bar")),
-		map[string][]tsdbutil.Sample{`{foo="bar"}`: {sample{t: 1, v: 2}}})
+		map[string][]tsdbutil.Sample{`{foo="bar"}`: {sample{t: 1, v: []byte("2")}}})
 
 	q, err = NewBlockQuerier(block, 0, 1000)
 	testutil.Ok(t, err)
 	testutil.Equals(t, query(t, q, labels.MustNewMatcher(labels.MatchNotRegexp, "foo", "^.?$")),
 		map[string][]tsdbutil.Sample{
-			`{foo="bar"}`: {sample{t: 1, v: 2}},
-			`{foo="baz"}`: {sample{t: 3, v: 4}},
+			`{foo="bar"}`: {sample{t: 1, v: []byte("2")}},
+			`{foo="baz"}`: {sample{t: 3, v: []byte("4")}},
 		})
 }
 
@@ -368,8 +368,10 @@ func genSeries(totalSeries, labelCount int, mint, maxt int64) []storage.Series {
 			lbls[defaultLabelName+strconv.Itoa(j)] = defaultLabelValue + strconv.Itoa(j)
 		}
 		samples := make([]tsdbutil.Sample, 0, maxt-mint+1)
+		val := make([]byte, 4)
 		for t := mint; t < maxt; t++ {
-			samples = append(samples, sample{t: t, v: rand.Float64()})
+			rand.Read(val)
+			samples = append(samples, sample{t: t, v: val})
 		}
 		series[i] = storage.NewListSeries(labels.FromMap(lbls), samples)
 	}
@@ -383,13 +385,16 @@ func populateSeries(lbls []map[string]string, mint, maxt int64) []storage.Series
 	}
 
 	series := make([]storage.Series, 0, len(lbls))
+	val := make([]byte, 4)
+
 	for _, lbl := range lbls {
 		if len(lbl) == 0 {
 			continue
 		}
 		samples := make([]tsdbutil.Sample, 0, maxt-mint+1)
 		for t := mint; t <= maxt; t++ {
-			samples = append(samples, sample{t: t, v: rand.Float64()})
+			rand.Read(val)
+			samples = append(samples, sample{t: t, v: val})
 		}
 		series = append(series, storage.NewListSeries(labels.FromMap(lbl), samples))
 	}
