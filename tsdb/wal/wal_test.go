@@ -24,12 +24,11 @@ import (
 	"path/filepath"
 	"testing"
 
+	"github.com/conprof/db/tsdb/fileutil"
 	client_testutil "github.com/prometheus/client_golang/prometheus/testutil"
+	"github.com/prometheus/prometheus/util/testutil"
 	"github.com/stretchr/testify/require"
 	"go.uber.org/goleak"
-
-	"github.com/prometheus/prometheus/tsdb/fileutil"
-	"github.com/prometheus/prometheus/util/testutil"
 )
 
 func TestMain(m *testing.M) {

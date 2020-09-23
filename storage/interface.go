@@ -17,9 +17,9 @@ import (
 	"context"
 	"errors"
 
+	"github.com/conprof/db/tsdb/chunkenc"
+	"github.com/conprof/db/tsdb/chunks"
 	"github.com/prometheus/prometheus/pkg/labels"
-	"github.com/prometheus/prometheus/tsdb/chunkenc"
-	"github.com/prometheus/prometheus/tsdb/chunks"
 )
 
 // The errors exposed.
@@ -140,11 +140,11 @@ type Appender interface {
 	// to AddFast() at any point. Adding the sample via Add() returns a new
 	// reference number.
 	// If the reference is 0 it must not be used for caching.
-	Add(l labels.Labels, t int64, v float64) (uint64, error)
+	Add(l labels.Labels, t int64, v []byte) (uint64, error)
 
 	// AddFast adds a sample pair for the referenced series. It is generally
 	// faster than adding a sample by providing its full label set.
-	AddFast(ref uint64, t int64, v float64) error
+	AddFast(ref uint64, t int64, v []byte) error
 
 	// Commit submits the collected samples and purges the batch. If Commit
 	// returns a non-nil error, it also rolls back all modifications made in

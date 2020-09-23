@@ -26,12 +26,11 @@ import (
 	"strconv"
 	"sync"
 
+	"github.com/conprof/db/tsdb/chunkenc"
+	tsdb_errors "github.com/conprof/db/tsdb/errors"
+	"github.com/conprof/db/tsdb/fileutil"
 	"github.com/pkg/errors"
 	"go.uber.org/atomic"
-
-	"github.com/prometheus/prometheus/tsdb/chunkenc"
-	tsdb_errors "github.com/prometheus/prometheus/tsdb/errors"
-	"github.com/prometheus/prometheus/tsdb/fileutil"
 )
 
 // Head chunk file header fields constants.

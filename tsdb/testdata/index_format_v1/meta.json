@@ -1,6 +1,5 @@
 {
-	"version": 1,
-	"ulid": "01DXXFZDYD1MQW6079WK0K6EDQ",
+	"ulid": "01ER4JHEPBGK730T6V3PSASGMD",
 	"minTime": 0,
 	"maxTime": 7200000,
 	"stats": {
@@ -11,7 +10,8 @@
 	"compaction": {
 		"level": 1,
 		"sources": [
-			"01DXXFZDYD1MQW6079WK0K6EDQ"
+			"01ER4JHEPBGK730T6V3PSASGMD"
 		]
-	}
+	},
+	"version": 1
 }

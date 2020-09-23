@@ -14,7 +14,9 @@
 package storage
 
 import (
+	"bytes"
 	"math/rand"
+	"strconv"
 	"testing"
 
 	"github.com/stretchr/testify/require"
@@ -59,7 +61,7 @@ func TestSampleRing(t *testing.T) {
 		for _, t := range c.input {
 			input = append(input, sample{
 				t: t,
-				v: float64(rand.Intn(100)),
+				v: []byte(strconv.Itoa(rand.Intn(100))),
 			})
 		}
 
@@ -70,7 +72,7 @@ func TestSampleRing(t *testing.T) {
 			for _, sold := range input[:i] {
 				found := false
 				for _, bs := range buffered {
-					if bs.t == sold.t && bs.v == sold.v {
+					if bs.t == sold.t && bytes.Equal(bs.v, sold.v) {
 						found = true
 						break
 					}
@@ -98,44 +100,44 @@ func TestBufferedSeriesIterator(t *testing.T) {
 		}
 		require.Equal(t, exp, b, "buffer mismatch")
 	}
-	sampleEq := func(ets int64, ev float64) {
+	sampleEq := func(ets int64, ev []byte) {
 		ts, v := it.Values()
 		require.Equal(t, ets, ts, "timestamp mismatch")
 		require.Equal(t, ev, v, "value mismatch")
 	}
 
 	it = NewBufferIterator(NewListSeriesIterator(samples{
-		sample{t: 1, v: 2},
-		sample{t: 2, v: 3},
-		sample{t: 3, v: 4},
-		sample{t: 4, v: 5},
-		sample{t: 5, v: 6},
-		sample{t: 99, v: 8},
-		sample{t: 100, v: 9},
-		sample{t: 101, v: 10},
+		sample{t: 1, v: []byte("2")},
+		sample{t: 2, v: []byte("3")},
+		sample{t: 3, v: []byte("4")},
+		sample{t: 4, v: []byte("5")},
+		sample{t: 5, v: []byte("6")},
+		sample{t: 99, v: []byte("8")},
+		sample{t: 100, v: []byte("9")},
+		sample{t: 101, v: []byte("10")},
 	}), 2)
 
 	require.True(t, it.Seek(-123), "seek failed")
-	sampleEq(1, 2)
+	sampleEq(1, []byte("2"))
 	bufferEq(nil)
 
 	require.True(t, it.Next(), "next failed")
-	sampleEq(2, 3)
-	bufferEq([]sample{{t: 1, v: 2}})
+	sampleEq(2, []byte("3"))
+	bufferEq([]sample{{t: 1, v: []byte("2")}})
 
 	require.True(t, it.Next(), "next failed")
 	require.True(t, it.Next(), "next failed")
 	require.True(t, it.Next(), "next failed")
-	sampleEq(5, 6)
-	bufferEq([]sample{{t: 2, v: 3}, {t: 3, v: 4}, {t: 4, v: 5}})
+	sampleEq(5, []byte("6"))
+	bufferEq([]sample{{t: 2, v: []byte("3")}, {t: 3, v: []byte("4")}, {t: 4, v: []byte("5")}})
 
 	require.True(t, it.Seek(5), "seek failed")
-	sampleEq(5, 6)
-	bufferEq([]sample{{t: 2, v: 3}, {t: 3, v: 4}, {t: 4, v: 5}})
+	sampleEq(5, []byte("6"))
+	bufferEq([]sample{{t: 2, v: []byte("3")}, {t: 3, v: []byte("4")}, {t: 4, v: []byte("5")}})
 
 	require.True(t, it.Seek(101), "seek failed")
-	sampleEq(101, 10)
-	bufferEq([]sample{{t: 99, v: 8}, {t: 100, v: 9}})
+	sampleEq(101, []byte("10"))
+	bufferEq([]sample{{t: 99, v: []byte("8")}, {t: 100, v: []byte("9")}})
 
 	require.False(t, it.Next(), "next succeeded unexpectedly")
 }
@@ -146,10 +148,10 @@ func TestBufferedSeriesIteratorNoBadAt(t *testing.T) {
 
 	m := &mockSeriesIterator{
 		seek: func(int64) bool { return false },
-		at: func() (int64, float64) {
+		at: func() (int64, []byte) {
 			require.False(t, done, "unexpectedly done")
 			done = true
-			return 0, 0
+			return 0, nil
 		},
 		next: func() bool { return !done },
 		err:  func() error { return nil },
@@ -176,15 +178,15 @@ func BenchmarkBufferedSeriesIterator(b *testing.B) {
 
 type mockSeriesIterator struct {
 	seek func(int64) bool
-	at   func() (int64, float64)
+	at   func() (int64, []byte)
 	next func() bool
 	err  func() error
 }
 
-func (m *mockSeriesIterator) Seek(t int64) bool    { return m.seek(t) }
-func (m *mockSeriesIterator) At() (int64, float64) { return m.at() }
-func (m *mockSeriesIterator) Next() bool           { return m.next() }
-func (m *mockSeriesIterator) Err() error           { return m.err() }
+func (m *mockSeriesIterator) Seek(t int64) bool   { return m.seek(t) }
+func (m *mockSeriesIterator) At() (int64, []byte) { return m.at() }
+func (m *mockSeriesIterator) Next() bool          { return m.next() }
+func (m *mockSeriesIterator) Err() error          { return m.err() }
 
 type fakeSeriesIterator struct {
 	nsamples int64
@@ -196,8 +198,8 @@ func newFakeSeriesIterator(nsamples, step int64) *fakeSeriesIterator {
 	return &fakeSeriesIterator{nsamples: nsamples, step: step, idx: -1}
 }
 
-func (it *fakeSeriesIterator) At() (int64, float64) {
-	return it.idx * it.step, 123 // value doesn't matter
+func (it *fakeSeriesIterator) At() (int64, []byte) {
+	return it.idx * it.step, []byte("123") // value doesn't matter
 }
 
 func (it *fakeSeriesIterator) Next() bool {

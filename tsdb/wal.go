@@ -27,17 +27,17 @@ import (
 	"sync"
 	"time"
 
+	"github.com/conprof/db/tsdb/encoding"
+	"github.com/conprof/db/tsdb/fileutil"
+	"github.com/conprof/db/tsdb/record"
+	"github.com/conprof/db/tsdb/tombstones"
+	"github.com/conprof/db/tsdb/wal"
 	"github.com/go-kit/kit/log"
 	"github.com/go-kit/kit/log/level"
 	"github.com/pkg/errors"
 	"github.com/prometheus/client_golang/prometheus"
 
 	"github.com/prometheus/prometheus/pkg/labels"
-	"github.com/prometheus/prometheus/tsdb/encoding"
-	"github.com/prometheus/prometheus/tsdb/fileutil"
-	"github.com/prometheus/prometheus/tsdb/record"
-	"github.com/prometheus/prometheus/tsdb/tombstones"
-	"github.com/prometheus/prometheus/tsdb/wal"
 )
 
 // WALEntryType indicates what data a WAL entry contains.
@@ -814,7 +814,7 @@ func (w *SegmentWAL) encodeSamples(buf *encoding.Encbuf, samples []record.RefSam
 	for _, s := range samples {
 		buf.PutVarint64(int64(s.Ref) - int64(first.Ref))
 		buf.PutVarint64(s.T - first.T)
-		buf.PutBE64(math.Float64bits(s.V))
+		buf.PutUvarintBytes(s.V)
 	}
 	return walSamplesSimple
 }
@@ -1158,12 +1158,14 @@ func (r *walReader) decodeSamples(flag byte, b []byte, res *[]record.RefSample) 
 	for len(dec.B) > 0 && dec.Err() == nil {
 		dref := dec.Varint64()
 		dtime := dec.Varint64()
-		val := dec.Be64()
+		v := dec.UvarintBytes()
+		val := make([]byte, len(v))
+		copy(val, v)
 
 		*res = append(*res, record.RefSample{
 			Ref: uint64(int64(baseRef) + dref),
 			T:   baseTime + dtime,
-			V:   math.Float64frombits(val),
+			V:   val,
 		})
 	}
 

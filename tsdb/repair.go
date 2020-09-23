@@ -20,12 +20,11 @@ import (
 	"os"
 	"path/filepath"
 
+	tsdb_errors "github.com/conprof/db/tsdb/errors"
+	"github.com/conprof/db/tsdb/fileutil"
 	"github.com/go-kit/kit/log"
 	"github.com/go-kit/kit/log/level"
 	"github.com/pkg/errors"
-
-	tsdb_errors "github.com/prometheus/prometheus/tsdb/errors"
-	"github.com/prometheus/prometheus/tsdb/fileutil"
 )
 
 // repairBadIndexVersion repairs an issue in index and meta.json persistence introduced in

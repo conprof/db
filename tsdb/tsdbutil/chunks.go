@@ -14,8 +14,8 @@
 package tsdbutil
 
 import (
-	"github.com/prometheus/prometheus/tsdb/chunkenc"
-	"github.com/prometheus/prometheus/tsdb/chunks"
+	"github.com/conprof/db/tsdb/chunkenc"
+	"github.com/conprof/db/tsdb/chunks"
 )
 
 type Samples interface {
@@ -25,7 +25,7 @@ type Samples interface {
 
 type Sample interface {
 	T() int64
-	V() float64
+	V() []byte
 }
 
 type SampleSlice []Sample
@@ -44,7 +44,7 @@ func ChunkFromSamplesGeneric(s Samples) chunks.Meta {
 		mint, maxt = s.Get(0).T(), s.Get(s.Len()-1).T()
 	}
 
-	c := chunkenc.NewXORChunk()
+	c := chunkenc.NewBytesChunk()
 	ca, _ := c.Appender()
 
 	for i := 0; i < s.Len(); i++ {
@@ -61,7 +61,7 @@ func ChunkFromSamplesGeneric(s Samples) chunks.Meta {
 func PopulatedChunk(numSamples int, minTime int64) chunks.Meta {
 	samples := make([]Sample, numSamples)
 	for i := 0; i < numSamples; i++ {
-		samples[i] = sample{minTime + int64(i*1000), 1.0}
+		samples[i] = sample{minTime + int64(i*1000), []byte("1.0")}
 	}
 	return ChunkFromSamples(samples)
 }

@@ -24,7 +24,7 @@ import (
 
 	"github.com/stretchr/testify/require"
 
-	"github.com/prometheus/prometheus/tsdb/chunkenc"
+	"github.com/conprof/db/tsdb/chunkenc"
 )
 
 func TestChunkDiskMapper_WriteChunk_Chunk_IterateChunks(t *testing.T) {
@@ -434,12 +434,14 @@ func testChunkDiskMapper(t *testing.T) *ChunkDiskMapper {
 }
 
 func randomChunk(t *testing.T) chunkenc.Chunk {
-	chunk := chunkenc.NewXORChunk()
+	chunk := chunkenc.NewBytesChunk()
 	len := rand.Int() % 120
 	app, err := chunk.Appender()
 	require.NoError(t, err)
 	for i := 0; i < len; i++ {
-		app.Append(rand.Int63(), rand.Float64())
+		val := make([]byte, 4)
+		rand.Read(val)
+		app.Append(rand.Int63(), val)
 	}
 	return chunk
 }

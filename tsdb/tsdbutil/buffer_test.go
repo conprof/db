@@ -14,8 +14,10 @@
 package tsdbutil
 
 import (
+	"bytes"
 	"math/rand"
 	"sort"
+	"strconv"
 	"testing"
 
 	"github.com/stretchr/testify/require"
@@ -55,7 +57,7 @@ func TestSampleRing(t *testing.T) {
 		for _, t := range c.input {
 			input = append(input, sample{
 				t: t,
-				v: float64(rand.Intn(100)),
+				v: []byte(strconv.Itoa(rand.Intn(100))),
 			})
 		}
 
@@ -66,7 +68,7 @@ func TestSampleRing(t *testing.T) {
 			for _, sold := range input[:i] {
 				found := false
 				for _, bs := range buffered {
-					if bs.t == sold.t && bs.v == sold.v {
+					if bs.t == sold.t && bytes.Equal(bs.v, sold.v) {
 						found = true
 						break
 					}
@@ -94,44 +96,44 @@ func TestBufferedSeriesIterator(t *testing.T) {
 		}
 		require.Equal(t, exp, b)
 	}
-	sampleEq := func(ets int64, ev float64) {
+	sampleEq := func(ets int64, ev []byte) {
 		ts, v := it.At()
 		require.Equal(t, ets, ts)
 		require.Equal(t, ev, v)
 	}
 
 	it = NewBuffer(newListSeriesIterator([]sample{
-		{t: 1, v: 2},
-		{t: 2, v: 3},
-		{t: 3, v: 4},
-		{t: 4, v: 5},
-		{t: 5, v: 6},
-		{t: 99, v: 8},
-		{t: 100, v: 9},
-		{t: 101, v: 10},
+		{t: 1, v: []byte("2")},
+		{t: 2, v: []byte("3")},
+		{t: 3, v: []byte("4")},
+		{t: 4, v: []byte("5")},
+		{t: 5, v: []byte("6")},
+		{t: 99, v: []byte("8")},
+		{t: 100, v: []byte("9")},
+		{t: 101, v: []byte("10")},
 	}), 2)
 
 	require.True(t, it.Seek(-123), "seek failed")
-	sampleEq(1, 2)
+	sampleEq(1, []byte("2"))
 	bufferEq(nil)
 
 	require.True(t, it.Next(), "next failed")
-	sampleEq(2, 3)
-	bufferEq([]sample{{t: 1, v: 2}})
+	sampleEq(2, []byte("3"))
+	bufferEq([]sample{{t: 1, v: []byte("2")}})
 
 	require.True(t, it.Next(), "next failed")
 	require.True(t, it.Next(), "next failed")
 	require.True(t, it.Next(), "next failed")
-	sampleEq(5, 6)
-	bufferEq([]sample{{t: 2, v: 3}, {t: 3, v: 4}, {t: 4, v: 5}})
+	sampleEq(5, []byte("6"))
+	bufferEq([]sample{{t: 2, v: []byte("3")}, {t: 3, v: []byte("4")}, {t: 4, v: []byte("5")}})
 
 	require.True(t, it.Seek(5), "seek failed")
-	sampleEq(5, 6)
-	bufferEq([]sample{{t: 2, v: 3}, {t: 3, v: 4}, {t: 4, v: 5}})
+	sampleEq(5, []byte("6"))
+	bufferEq([]sample{{t: 2, v: []byte("3")}, {t: 3, v: []byte("4")}, {t: 4, v: []byte("5")}})
 
 	require.True(t, it.Seek(101), "seek failed")
-	sampleEq(101, 10)
-	bufferEq([]sample{{t: 99, v: 8}, {t: 100, v: 9}})
+	sampleEq(101, []byte("10"))
+	bufferEq([]sample{{t: 99, v: []byte("8")}, {t: 100, v: []byte("9")}})
 
 	require.False(t, it.Next(), "next succeeded unexpectedly")
 }
@@ -145,7 +147,7 @@ func newListSeriesIterator(list []sample) *listSeriesIterator {
 	return &listSeriesIterator{list: list, idx: -1}
 }
 
-func (it *listSeriesIterator) At() (int64, float64) {
+func (it *listSeriesIterator) At() (int64, []byte) {
 	s := it.list[it.idx]
 	return s.t, s.v
 }

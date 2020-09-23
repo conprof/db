@@ -25,15 +25,14 @@ import (
 	"strconv"
 	"testing"
 
+	"github.com/conprof/db/storage"
+	"github.com/conprof/db/tsdb/chunks"
+	"github.com/conprof/db/tsdb/fileutil"
+	"github.com/conprof/db/tsdb/tsdbutil"
+	"github.com/conprof/db/tsdb/wal"
 	"github.com/go-kit/kit/log"
-	"github.com/stretchr/testify/require"
-
 	"github.com/prometheus/prometheus/pkg/labels"
-	"github.com/prometheus/prometheus/storage"
-	"github.com/prometheus/prometheus/tsdb/chunks"
-	"github.com/prometheus/prometheus/tsdb/fileutil"
-	"github.com/prometheus/prometheus/tsdb/tsdbutil"
-	"github.com/prometheus/prometheus/tsdb/wal"
+	"github.com/stretchr/testify/require"
 )
 
 // In Prometheus 2.1.0 we had a bug where the meta.json version was falsely bumped
@@ -149,7 +148,7 @@ func TestCorruptedChunk(t *testing.T) {
 				require.NoError(t, err)
 				require.NoError(t, f.Truncate(fi.Size()-1))
 			},
-			iterErr: errors.New("cannot populate chunk 8: segment doesn't include enough bytes to read the chunk - required:26, available:25"),
+			iterErr: errors.New("cannot populate chunk 8: segment doesn't include enough bytes to read the chunk - required:19, available:18"),
 		},
 		{
 			name: "checksum mismatch",
@@ -167,7 +166,7 @@ func TestCorruptedChunk(t *testing.T) {
 				require.NoError(t, err)
 				require.Equal(t, n, 1)
 			},
-			iterErr: errors.New("cannot populate chunk 8: checksum mismatch expected:cfc0526c, actual:34815eae"),
+			iterErr: errors.New("cannot populate chunk 8: checksum mismatch expected:11347d90, actual:28fdbbe0"),
 		},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
@@ -177,7 +176,7 @@ func TestCorruptedChunk(t *testing.T) {
 				require.NoError(t, os.RemoveAll(tmpdir))
 			}()
 
-			series := storage.NewListSeries(labels.FromStrings("a", "b"), []tsdbutil.Sample{sample{1, 1}})
+			series := storage.NewListSeries(labels.FromStrings("a", "b"), []tsdbutil.Sample{sample{1, []byte("1")}})
 			blockDir := createBlock(t, tmpdir, []storage.Series{series})
 			files, err := sequenceFiles(chunkDir(blockDir))
 			require.NoError(t, err)
@@ -268,19 +267,21 @@ func TestBlockSize(t *testing.T) {
 
 func TestReadIndexFormatV1(t *testing.T) {
 	/* The block here was produced at the commit
-	    706602daed1487f7849990678b4ece4599745905 used in 2.0.0 with:
-	   db, _ := Open("v1db", nil, nil, nil)
-	   app := db.Appender()
-	   app.Add(labels.FromStrings("foo", "bar"), 1, 2)
-	   app.Add(labels.FromStrings("foo", "baz"), 3, 4)
-	   app.Add(labels.FromStrings("foo", "meh"), 1000*3600*4, 4) // Not in the block.
-	   // Make sure we've enough values for the lack of sorting of postings offsets to show up.
-	   for i := 0; i < 100; i++ {
-	     app.Add(labels.FromStrings("bar", strconv.FormatInt(int64(i), 10)), 0, 0)
-	   }
-	   app.Commit()
-	   db.compact()
-	   db.Close()
+	   github.com/conprof/db @ d202624dc72c95bfeb2a97d711709cfb7e4424cd:
+	{
+		db, _ := Open(filepath.Join("testdata", "index_format_v1"), nil, nil, nil)
+		app := db.Appender(context.Background())
+		app.Add(labels.FromStrings("foo", "bar"), 1, []byte("2"))
+		app.Add(labels.FromStrings("foo", "baz"), 3, []byte("4"))
+		app.Add(labels.FromStrings("foo", "meh"), 1000*3600*4, []byte("4")) // Not in the block.
+		// Make sure we've enough values for the lack of sorting of postings offsets to show up.
+		for i := 0; i < 100; i++ {
+			app.Add(labels.FromStrings("bar", strconv.FormatInt(int64(i), 10)), 0, []byte("0"))
+		}
+		app.Commit()
+		db.Compact()
+		db.Close()
+	}
 	*/
 
 	blockDir := filepath.Join("testdata", "index_format_v1")
@@ -290,14 +291,14 @@ func TestReadIndexFormatV1(t *testing.T) {
 	q, err := NewBlockQuerier(block, 0, 1000)
 	require.NoError(t, err)
 	require.Equal(t, query(t, q, labels.MustNewMatcher(labels.MatchEqual, "foo", "bar")),
-		map[string][]tsdbutil.Sample{`{foo="bar"}`: {sample{t: 1, v: 2}}})
+		map[string][]tsdbutil.Sample{`{foo="bar"}`: {sample{t: 1, v: []byte("2")}}})
 
 	q, err = NewBlockQuerier(block, 0, 1000)
 	require.NoError(t, err)
 	require.Equal(t, query(t, q, labels.MustNewMatcher(labels.MatchNotRegexp, "foo", "^.?$")),
 		map[string][]tsdbutil.Sample{
-			`{foo="bar"}`: {sample{t: 1, v: 2}},
-			`{foo="baz"}`: {sample{t: 3, v: 4}},
+			`{foo="bar"}`: {sample{t: 1, v: []byte("2")}},
+			`{foo="baz"}`: {sample{t: 3, v: []byte("4")}},
 		})
 }
 
@@ -367,7 +368,9 @@ func genSeries(totalSeries, labelCount int, mint, maxt int64) []storage.Series {
 		}
 		samples := make([]tsdbutil.Sample, 0, maxt-mint+1)
 		for t := mint; t < maxt; t++ {
-			samples = append(samples, sample{t: t, v: rand.Float64()})
+			val := make([]byte, 4)
+			rand.Read(val)
+			samples = append(samples, sample{t: t, v: val})
 		}
 		series[i] = storage.NewListSeries(labels.FromMap(lbls), samples)
 	}
@@ -381,13 +384,16 @@ func populateSeries(lbls []map[string]string, mint, maxt int64) []storage.Series
 	}
 
 	series := make([]storage.Series, 0, len(lbls))
+	val := make([]byte, 4)
+
 	for _, lbl := range lbls {
 		if len(lbl) == 0 {
 			continue
 		}
 		samples := make([]tsdbutil.Sample, 0, maxt-mint+1)
 		for t := mint; t <= maxt; t++ {
-			samples = append(samples, sample{t: t, v: rand.Float64()})
+			rand.Read(val)
+			samples = append(samples, sample{t: t, v: val})
 		}
 		series = append(series, storage.NewListSeries(labels.FromMap(lbl), samples))
 	}

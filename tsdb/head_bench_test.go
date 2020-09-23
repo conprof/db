@@ -19,11 +19,11 @@ import (
 	"strconv"
 	"testing"
 
+	"github.com/conprof/db/tsdb/chunks"
 	"github.com/stretchr/testify/require"
 	"go.uber.org/atomic"
 
 	"github.com/prometheus/prometheus/pkg/labels"
-	"github.com/prometheus/prometheus/tsdb/chunks"
 )
 
 func BenchmarkHeadStripeSeriesCreate(b *testing.B) {

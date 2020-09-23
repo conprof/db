@@ -21,12 +21,12 @@ import (
 	"strings"
 	"sync"
 
+	"github.com/conprof/db/tsdb/chunkenc"
+	"github.com/conprof/db/tsdb/chunks"
+	tsdb_errors "github.com/conprof/db/tsdb/errors"
 	"github.com/pkg/errors"
 
 	"github.com/prometheus/prometheus/pkg/labels"
-	"github.com/prometheus/prometheus/tsdb/chunkenc"
-	"github.com/prometheus/prometheus/tsdb/chunks"
-	tsdb_errors "github.com/prometheus/prometheus/tsdb/errors"
 )
 
 type mergeGenericQuerier struct {
@@ -471,7 +471,7 @@ func (c *chainSampleIterator) Seek(t int64) bool {
 	return false
 }
 
-func (c *chainSampleIterator) At() (t int64, v float64) {
+func (c *chainSampleIterator) At() (t int64, v []byte) {
 	if c.curr == nil {
 		panic("chainSampleIterator.At() called before first .Next() or after .Next() returned false.")
 	}

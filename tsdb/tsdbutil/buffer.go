@@ -16,7 +16,7 @@ package tsdbutil
 import (
 	"math"
 
-	"github.com/prometheus/prometheus/tsdb/chunkenc"
+	"github.com/conprof/db/tsdb/chunkenc"
 )
 
 // BufferedSeriesIterator wraps an iterator with a look-back buffer.
@@ -39,7 +39,7 @@ func NewBuffer(it chunkenc.Iterator, delta int64) *BufferedSeriesIterator {
 
 // PeekBack returns the previous element of the iterator. If there is none buffered,
 // ok is false.
-func (b *BufferedSeriesIterator) PeekBack() (t int64, v float64, ok bool) {
+func (b *BufferedSeriesIterator) PeekBack() (t int64, v []byte, ok bool) {
 	return b.buf.last()
 }
 
@@ -89,7 +89,7 @@ func (b *BufferedSeriesIterator) Next() bool {
 }
 
 // At returns the current element of the iterator.
-func (b *BufferedSeriesIterator) At() (int64, float64) {
+func (b *BufferedSeriesIterator) At() (int64, []byte) {
 	return b.it.At()
 }
 
@@ -100,14 +100,14 @@ func (b *BufferedSeriesIterator) Err() error {
 
 type sample struct {
 	t int64
-	v float64
+	v []byte
 }
 
 func (s sample) T() int64 {
 	return s.t
 }
 
-func (s sample) V() float64 {
+func (s sample) V() []byte {
 	return s.v
 }
 
@@ -155,11 +155,11 @@ func (it *sampleRingIterator) Err() error {
 	return nil
 }
 
-func (it *sampleRingIterator) At() (int64, float64) {
+func (it *sampleRingIterator) At() (int64, []byte) {
 	return it.r.at(it.i)
 }
 
-func (r *sampleRing) at(i int) (int64, float64) {
+func (r *sampleRing) at(i int) (int64, []byte) {
 	j := (r.f + i) % len(r.buf)
 	s := r.buf[j]
 	return s.t, s.v
@@ -167,7 +167,7 @@ func (r *sampleRing) at(i int) (int64, float64) {
 
 // add adds a sample to the ring buffer and frees all samples that fall
 // out of the delta range.
-func (r *sampleRing) add(t int64, v float64) {
+func (r *sampleRing) add(t int64, v []byte) {
 	l := len(r.buf)
 	// Grow the ring buffer if it fits no more elements.
 	if l == r.l {
@@ -199,9 +199,9 @@ func (r *sampleRing) add(t int64, v float64) {
 }
 
 // last returns the most recent element added to the ring.
-func (r *sampleRing) last() (int64, float64, bool) {
+func (r *sampleRing) last() (int64, []byte, bool) {
 	if r.l == 0 {
-		return 0, 0, false
+		return 0, nil, false
 	}
 	s := r.buf[r.i]
 	return s.t, s.v, true

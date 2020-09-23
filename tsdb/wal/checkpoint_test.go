@@ -19,15 +19,15 @@ import (
 	"io/ioutil"
 	"os"
 	"path/filepath"
+	"strconv"
 	"strings"
 	"testing"
 
+	"github.com/conprof/db/tsdb/record"
 	"github.com/go-kit/kit/log"
 	"github.com/pkg/errors"
-	"github.com/stretchr/testify/require"
-
 	"github.com/prometheus/prometheus/pkg/labels"
-	"github.com/prometheus/prometheus/tsdb/record"
+	"github.com/stretchr/testify/require"
 )
 
 func TestLastCheckpoint(t *testing.T) {
@@ -170,10 +170,10 @@ func TestCheckpoint(t *testing.T) {
 				// Make them have drifting timestamps within a record to see that they
 				// get filtered properly.
 				b := enc.Samples([]record.RefSample{
-					{Ref: 0, T: last, V: float64(i)},
-					{Ref: 1, T: last + 10000, V: float64(i)},
-					{Ref: 2, T: last + 20000, V: float64(i)},
-					{Ref: 3, T: last + 30000, V: float64(i)},
+					{Ref: 0, T: last, V: []byte(strconv.Itoa(i))},
+					{Ref: 1, T: last + 10000, V: []byte(strconv.Itoa(i))},
+					{Ref: 2, T: last + 20000, V: []byte(strconv.Itoa(i))},
+					{Ref: 3, T: last + 30000, V: []byte(strconv.Itoa(i))},
 				}, nil)
 				require.NoError(t, w.Log(b))
 

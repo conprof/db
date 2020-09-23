@@ -26,16 +26,15 @@ import (
 	"testing"
 	"time"
 
+	"github.com/conprof/db/storage"
+	"github.com/conprof/db/tsdb/chunkenc"
+	"github.com/conprof/db/tsdb/chunks"
+	"github.com/conprof/db/tsdb/index"
+	"github.com/conprof/db/tsdb/tombstones"
+	"github.com/conprof/db/tsdb/tsdbutil"
 	"github.com/pkg/errors"
-	"github.com/stretchr/testify/require"
-
 	"github.com/prometheus/prometheus/pkg/labels"
-	"github.com/prometheus/prometheus/storage"
-	"github.com/prometheus/prometheus/tsdb/chunkenc"
-	"github.com/prometheus/prometheus/tsdb/chunks"
-	"github.com/prometheus/prometheus/tsdb/index"
-	"github.com/prometheus/prometheus/tsdb/tombstones"
-	"github.com/prometheus/prometheus/tsdb/tsdbutil"
+	"github.com/stretchr/testify/require"
 )
 
 // TODO(bwplotka): Replace those mocks with remote.concreteSeriesSet.
@@ -130,7 +129,7 @@ func createIdxChkReaders(t *testing.T, tc []seriesSamples) (IndexReader, ChunkRe
 				Ref:     chunkRef,
 			})
 
-			chunk := chunkenc.NewXORChunk()
+			chunk := chunkenc.NewBytesChunk()
 			app, _ := chunk.Appender()
 			for _, smpl := range chk {
 				app.Append(smpl.t, smpl.v)
@@ -277,24 +276,24 @@ func TestBlockQuerier(t *testing.T) {
 			ms:   []*labels.Matcher{labels.MustNewMatcher(labels.MatchRegexp, "a", ".*")},
 			exp: newMockSeriesSet([]storage.Series{
 				storage.NewListSeries(labels.Labels{{Name: "a", Value: "a"}},
-					[]tsdbutil.Sample{sample{1, 2}, sample{2, 3}, sample{3, 4}, sample{5, 2}, sample{6, 3}, sample{7, 4}},
+					[]tsdbutil.Sample{sample{1, []byte("1")}, sample{2, []byte("2")}, sample{3, []byte("3")}, sample{5, []byte("5")}, sample{6, []byte("6")}, sample{7, []byte("7")}},
 				),
 				storage.NewListSeries(labels.Labels{{Name: "a", Value: "a"}, {Name: "b", Value: "b"}},
-					[]tsdbutil.Sample{sample{1, 1}, sample{2, 2}, sample{3, 3}, sample{5, 3}, sample{6, 6}},
+					[]tsdbutil.Sample{sample{1, []byte("1")}, sample{2, []byte("2")}, sample{3, []byte("3")}, sample{5, []byte("5")}, sample{6, []byte("6")}},
 				),
 				storage.NewListSeries(labels.Labels{{Name: "b", Value: "b"}},
-					[]tsdbutil.Sample{sample{1, 3}, sample{2, 2}, sample{3, 6}, sample{5, 1}, sample{6, 7}, sample{7, 2}},
+					[]tsdbutil.Sample{sample{1, []byte("1")}, sample{2, []byte("2")}, sample{3, []byte("3")}, sample{5, []byte("5")}, sample{6, []byte("6")}, sample{7, []byte("7")}},
 				),
 			}),
 			expChks: newMockChunkSeriesSet([]storage.ChunkSeries{
 				storage.NewListChunkSeriesFromSamples(labels.Labels{{Name: "a", Value: "a"}},
-					[]tsdbutil.Sample{sample{1, 2}, sample{2, 3}, sample{3, 4}}, []tsdbutil.Sample{sample{5, 2}, sample{6, 3}, sample{7, 4}},
+					[]tsdbutil.Sample{sample{1, []byte("1")}, sample{2, []byte("2")}, sample{3, []byte("3")}}, []tsdbutil.Sample{sample{5, []byte("5")}, sample{6, []byte("6")}, sample{7, []byte("7")}},
 				),
 				storage.NewListChunkSeriesFromSamples(labels.Labels{{Name: "a", Value: "a"}, {Name: "b", Value: "b"}},
-					[]tsdbutil.Sample{sample{1, 1}, sample{2, 2}, sample{3, 3}}, []tsdbutil.Sample{sample{5, 3}, sample{6, 6}},
+					[]tsdbutil.Sample{sample{1, []byte("1")}, sample{2, []byte("2")}, sample{3, []byte("3")}}, []tsdbutil.Sample{sample{5, []byte("5")}, sample{6, []byte("6")}},
 				),
 				storage.NewListChunkSeriesFromSamples(labels.Labels{{Name: "b", Value: "b"}},
-					[]tsdbutil.Sample{sample{1, 3}, sample{2, 2}, sample{3, 6}}, []tsdbutil.Sample{sample{5, 1}, sample{6, 7}, sample{7, 2}},
+					[]tsdbutil.Sample{sample{1, []byte("1")}, sample{2, []byte("2")}, sample{3, []byte("3")}}, []tsdbutil.Sample{sample{5, []byte("5")}, sample{6, []byte("6")}, sample{7, []byte("7")}},
 				),
 			}),
 		},
@@ -304,18 +303,18 @@ func TestBlockQuerier(t *testing.T) {
 			ms:   []*labels.Matcher{labels.MustNewMatcher(labels.MatchEqual, "a", "a")},
 			exp: newMockSeriesSet([]storage.Series{
 				storage.NewListSeries(labels.Labels{{Name: "a", Value: "a"}},
-					[]tsdbutil.Sample{sample{2, 3}, sample{3, 4}, sample{5, 2}, sample{6, 3}},
+					[]tsdbutil.Sample{sample{2, []byte("2")}, sample{3, []byte("3")}, sample{5, []byte("5")}, sample{6, []byte("6")}},
 				),
 				storage.NewListSeries(labels.Labels{{Name: "a", Value: "a"}, {Name: "b", Value: "b"}},
-					[]tsdbutil.Sample{sample{2, 2}, sample{3, 3}, sample{5, 3}, sample{6, 6}},
+					[]tsdbutil.Sample{sample{2, []byte("2")}, sample{3, []byte("3")}, sample{5, []byte("5")}, sample{6, []byte("6")}},
 				),
 			}),
 			expChks: newMockChunkSeriesSet([]storage.ChunkSeries{
 				storage.NewListChunkSeriesFromSamples(labels.Labels{{Name: "a", Value: "a"}},
-					[]tsdbutil.Sample{sample{2, 3}, sample{3, 4}}, []tsdbutil.Sample{sample{5, 2}, sample{6, 3}},
+					[]tsdbutil.Sample{sample{2, []byte("2")}, sample{3, []byte("3")}}, []tsdbutil.Sample{sample{5, []byte("5")}, sample{6, []byte("6")}},
 				),
 				storage.NewListChunkSeriesFromSamples(labels.Labels{{Name: "a", Value: "a"}, {Name: "b", Value: "b"}},
-					[]tsdbutil.Sample{sample{2, 2}, sample{3, 3}}, []tsdbutil.Sample{sample{5, 3}, sample{6, 6}},
+					[]tsdbutil.Sample{sample{2, []byte("2")}, sample{3, []byte("3")}}, []tsdbutil.Sample{sample{5, []byte("5")}, sample{6, []byte("6")}},
 				),
 			}),
 		},
@@ -363,24 +362,24 @@ func TestBlockQuerier_AgainstHeadWithOpenChunks(t *testing.T) {
 			ms:   []*labels.Matcher{labels.MustNewMatcher(labels.MatchRegexp, "a", ".*")},
 			exp: newMockSeriesSet([]storage.Series{
 				storage.NewListSeries(labels.Labels{{Name: "a", Value: "a"}},
-					[]tsdbutil.Sample{sample{1, 2}, sample{2, 3}, sample{3, 4}, sample{5, 2}, sample{6, 3}, sample{7, 4}},
+					[]tsdbutil.Sample{sample{1, []byte("1")}, sample{2, []byte("2")}, sample{3, []byte("3")}, sample{5, []byte("5")}, sample{6, []byte("6")}, sample{7, []byte("7")}},
 				),
 				storage.NewListSeries(labels.Labels{{Name: "a", Value: "a"}, {Name: "b", Value: "b"}},
-					[]tsdbutil.Sample{sample{1, 1}, sample{2, 2}, sample{3, 3}, sample{5, 3}, sample{6, 6}},
+					[]tsdbutil.Sample{sample{1, []byte("1")}, sample{2, []byte("2")}, sample{3, []byte("3")}, sample{5, []byte("5")}, sample{6, []byte("6")}},
 				),
 				storage.NewListSeries(labels.Labels{{Name: "b", Value: "b"}},
-					[]tsdbutil.Sample{sample{1, 3}, sample{2, 2}, sample{3, 6}, sample{5, 1}, sample{6, 7}, sample{7, 2}},
+					[]tsdbutil.Sample{sample{1, []byte("1")}, sample{2, []byte("2")}, sample{3, []byte("3")}, sample{5, []byte("5")}, sample{6, []byte("6")}, sample{7, []byte("7")}},
 				),
 			}),
 			expChks: newMockChunkSeriesSet([]storage.ChunkSeries{
 				storage.NewListChunkSeriesFromSamples(labels.Labels{{Name: "a", Value: "a"}},
-					[]tsdbutil.Sample{sample{1, 2}, sample{2, 3}, sample{3, 4}, sample{5, 2}, sample{6, 3}, sample{7, 4}},
+					[]tsdbutil.Sample{sample{1, []byte("1")}, sample{2, []byte("2")}, sample{3, []byte("3")}, sample{5, []byte("5")}, sample{6, []byte("6")}, sample{7, []byte("7")}},
 				),
 				storage.NewListChunkSeriesFromSamples(labels.Labels{{Name: "a", Value: "a"}, {Name: "b", Value: "b"}},
-					[]tsdbutil.Sample{sample{1, 1}, sample{2, 2}, sample{3, 3}, sample{5, 3}, sample{6, 6}},
+					[]tsdbutil.Sample{sample{1, []byte("1")}, sample{2, []byte("2")}, sample{3, []byte("3")}, sample{5, []byte("5")}, sample{6, []byte("6")}},
 				),
 				storage.NewListChunkSeriesFromSamples(labels.Labels{{Name: "b", Value: "b"}},
-					[]tsdbutil.Sample{sample{1, 3}, sample{2, 2}, sample{3, 6}, sample{5, 1}, sample{6, 7}, sample{7, 2}},
+					[]tsdbutil.Sample{sample{1, []byte("1")}, sample{2, []byte("2")}, sample{3, []byte("3")}, sample{5, []byte("5")}, sample{6, []byte("6")}, sample{7, []byte("7")}},
 				),
 			}),
 		},
@@ -390,18 +389,18 @@ func TestBlockQuerier_AgainstHeadWithOpenChunks(t *testing.T) {
 			ms:   []*labels.Matcher{labels.MustNewMatcher(labels.MatchEqual, "a", "a")},
 			exp: newMockSeriesSet([]storage.Series{
 				storage.NewListSeries(labels.Labels{{Name: "a", Value: "a"}},
-					[]tsdbutil.Sample{sample{2, 3}, sample{3, 4}, sample{5, 2}, sample{6, 3}},
+					[]tsdbutil.Sample{sample{2, []byte("2")}, sample{3, []byte("3")}, sample{5, []byte("5")}, sample{6, []byte("6")}},
 				),
 				storage.NewListSeries(labels.Labels{{Name: "a", Value: "a"}, {Name: "b", Value: "b"}},
-					[]tsdbutil.Sample{sample{2, 2}, sample{3, 3}, sample{5, 3}, sample{6, 6}},
+					[]tsdbutil.Sample{sample{2, []byte("2")}, sample{3, []byte("3")}, sample{5, []byte("5")}, sample{6, []byte("6")}},
 				),
 			}),
 			expChks: newMockChunkSeriesSet([]storage.ChunkSeries{
 				storage.NewListChunkSeriesFromSamples(labels.Labels{{Name: "a", Value: "a"}},
-					[]tsdbutil.Sample{sample{2, 3}, sample{3, 4}, sample{5, 2}, sample{6, 3}},
+					[]tsdbutil.Sample{sample{2, []byte("2")}, sample{3, []byte("3")}, sample{5, []byte("5")}, sample{6, []byte("6")}},
 				),
 				storage.NewListChunkSeriesFromSamples(labels.Labels{{Name: "a", Value: "a"}, {Name: "b", Value: "b"}},
-					[]tsdbutil.Sample{sample{2, 2}, sample{3, 3}, sample{5, 3}, sample{6, 6}},
+					[]tsdbutil.Sample{sample{2, []byte("2")}, sample{3, []byte("3")}, sample{5, []byte("5")}, sample{6, []byte("6")}},
 				),
 			}),
 		},
@@ -440,22 +439,22 @@ var testData = []seriesSamples{
 	{
 		lset: map[string]string{"a": "a"},
 		chunks: [][]sample{
-			{{1, 2}, {2, 3}, {3, 4}},
-			{{5, 2}, {6, 3}, {7, 4}},
+			{{1, []byte("1")}, {2, []byte("2")}, {3, []byte("3")}},
+			{{5, []byte("5")}, {6, []byte("6")}, {7, []byte("7")}},
 		},
 	},
 	{
 		lset: map[string]string{"a": "a", "b": "b"},
 		chunks: [][]sample{
-			{{1, 1}, {2, 2}, {3, 3}},
-			{{5, 3}, {6, 6}},
+			{{1, []byte("1")}, {2, []byte("2")}, {3, []byte("3")}},
+			{{5, []byte("5")}, {6, []byte("6")}},
 		},
 	},
 	{
 		lset: map[string]string{"b": "b"},
 		chunks: [][]sample{
-			{{1, 3}, {2, 2}, {3, 6}},
-			{{5, 1}, {6, 7}, {7, 2}},
+			{{1, []byte("1")}, {2, []byte("2")}, {3, []byte("3")}},
+			{{5, []byte("5")}, {6, []byte("6")}, {7, []byte("7")}},
 		},
 	},
 }
@@ -502,24 +501,24 @@ func TestBlockQuerierDelete(t *testing.T) {
 			ms:   []*labels.Matcher{labels.MustNewMatcher(labels.MatchRegexp, "a", ".*")},
 			exp: newMockSeriesSet([]storage.Series{
 				storage.NewListSeries(labels.Labels{{Name: "a", Value: "a"}},
-					[]tsdbutil.Sample{sample{5, 2}, sample{6, 3}, sample{7, 4}},
+					[]tsdbutil.Sample{sample{5, []byte("5")}, sample{6, []byte("6")}, sample{7, []byte("7")}},
 				),
 				storage.NewListSeries(labels.Labels{{Name: "a", Value: "a"}, {Name: "b", Value: "b"}},
-					[]tsdbutil.Sample{sample{5, 3}},
+					[]tsdbutil.Sample{sample{5, []byte("5")}},
 				),
 				storage.NewListSeries(labels.Labels{{Name: "b", Value: "b"}},
-					[]tsdbutil.Sample{sample{1, 3}, sample{2, 2}, sample{3, 6}, sample{5, 1}},
+					[]tsdbutil.Sample{sample{1, []byte("1")}, sample{2, []byte("2")}, sample{3, []byte("3")}, sample{5, []byte("5")}},
 				),
 			}),
 			expChks: newMockChunkSeriesSet([]storage.ChunkSeries{
 				storage.NewListChunkSeriesFromSamples(labels.Labels{{Name: "a", Value: "a"}},
-					[]tsdbutil.Sample{sample{5, 2}, sample{6, 3}, sample{7, 4}},
+					[]tsdbutil.Sample{sample{5, []byte("5")}, sample{6, []byte("6")}, sample{7, []byte("7")}},
 				),
 				storage.NewListChunkSeriesFromSamples(labels.Labels{{Name: "a", Value: "a"}, {Name: "b", Value: "b"}},
-					[]tsdbutil.Sample{sample{5, 3}},
+					[]tsdbutil.Sample{sample{5, []byte("5")}},
 				),
 				storage.NewListChunkSeriesFromSamples(labels.Labels{{Name: "b", Value: "b"}},
-					[]tsdbutil.Sample{sample{1, 3}, sample{2, 2}, sample{3, 6}}, []tsdbutil.Sample{sample{5, 1}},
+					[]tsdbutil.Sample{sample{1, []byte("1")}, sample{2, []byte("2")}, sample{3, []byte("3")}}, []tsdbutil.Sample{sample{5, []byte("5")}},
 				),
 			}),
 		},
@@ -529,18 +528,18 @@ func TestBlockQuerierDelete(t *testing.T) {
 			ms:   []*labels.Matcher{labels.MustNewMatcher(labels.MatchEqual, "a", "a")},
 			exp: newMockSeriesSet([]storage.Series{
 				storage.NewListSeries(labels.Labels{{Name: "a", Value: "a"}},
-					[]tsdbutil.Sample{sample{5, 2}, sample{6, 3}},
+					[]tsdbutil.Sample{sample{5, []byte("5")}, sample{6, []byte("6")}},
 				),
 				storage.NewListSeries(labels.Labels{{Name: "a", Value: "a"}, {Name: "b", Value: "b"}},
-					[]tsdbutil.Sample{sample{5, 3}},
+					[]tsdbutil.Sample{sample{5, []byte("5")}},
 				),
 			}),
 			expChks: newMockChunkSeriesSet([]storage.ChunkSeries{
 				storage.NewListChunkSeriesFromSamples(labels.Labels{{Name: "a", Value: "a"}},
-					[]tsdbutil.Sample{sample{5, 2}, sample{6, 3}},
+					[]tsdbutil.Sample{sample{5, []byte("5")}, sample{6, []byte("6")}},
 				),
 				storage.NewListChunkSeriesFromSamples(labels.Labels{{Name: "a", Value: "a"}, {Name: "b", Value: "b"}},
-					[]tsdbutil.Sample{sample{5, 3}},
+					[]tsdbutil.Sample{sample{5, []byte("5")}},
 				),
 			}),
 		},
@@ -623,57 +622,57 @@ func TestPopulateWithTombSeriesIterators(t *testing.T) {
 		{
 			name: "one chunk",
 			chks: [][]tsdbutil.Sample{
-				{sample{1, 2}, sample{2, 3}, sample{3, 5}, sample{6, 1}},
+				{sample{1, []byte("1")}, sample{2, []byte("2")}, sample{3, []byte("3")}, sample{6, []byte("6")}},
 			},
 
 			expected: []tsdbutil.Sample{
-				sample{1, 2}, sample{2, 3}, sample{3, 5}, sample{6, 1},
+				sample{1, []byte("1")}, sample{2, []byte("2")}, sample{3, []byte("3")}, sample{6, []byte("6")},
 			},
 			expectedChks: []chunks.Meta{
 				tsdbutil.ChunkFromSamples([]tsdbutil.Sample{
-					sample{1, 2}, sample{2, 3}, sample{3, 5}, sample{6, 1},
+					sample{1, []byte("1")}, sample{2, []byte("2")}, sample{3, []byte("3")}, sample{6, []byte("6")},
 				}),
 			},
 		},
 		{
 			name: "two full chunks",
 			chks: [][]tsdbutil.Sample{
-				{sample{1, 2}, sample{2, 3}, sample{3, 5}, sample{6, 1}},
-				{sample{7, 89}, sample{9, 8}},
+				{sample{1, []byte("1")}, sample{2, []byte("2")}, sample{3, []byte("3")}, sample{6, []byte("6")}},
+				{sample{7, []byte("7")}, sample{9, []byte("9")}},
 			},
 
 			expected: []tsdbutil.Sample{
-				sample{1, 2}, sample{2, 3}, sample{3, 5}, sample{6, 1}, sample{7, 89}, sample{9, 8},
+				sample{1, []byte("1")}, sample{2, []byte("2")}, sample{3, []byte("3")}, sample{6, []byte("6")}, sample{7, []byte("7")}, sample{9, []byte("9")},
 			},
 			expectedChks: []chunks.Meta{
 				tsdbutil.ChunkFromSamples([]tsdbutil.Sample{
-					sample{1, 2}, sample{2, 3}, sample{3, 5}, sample{6, 1},
+					sample{1, []byte("1")}, sample{2, []byte("2")}, sample{3, []byte("3")}, sample{6, []byte("6")},
 				}),
 				tsdbutil.ChunkFromSamples([]tsdbutil.Sample{
-					sample{7, 89}, sample{9, 8},
+					sample{7, []byte("7")}, sample{9, []byte("9")},
 				}),
 			},
 		},
 		{
 			name: "three full chunks",
 			chks: [][]tsdbutil.Sample{
-				{sample{1, 2}, sample{2, 3}, sample{3, 5}, sample{6, 1}},
-				{sample{7, 89}, sample{9, 8}},
-				{sample{10, 22}, sample{203, 3493}},
+				{sample{1, []byte("1")}, sample{2, []byte("2")}, sample{3, []byte("3")}, sample{6, []byte("6")}},
+				{sample{7, []byte("7")}, sample{9, []byte("9")}},
+				{sample{10, []byte("10")}, sample{203, []byte("203")}},
 			},
 
 			expected: []tsdbutil.Sample{
-				sample{1, 2}, sample{2, 3}, sample{3, 5}, sample{6, 1}, sample{7, 89}, sample{9, 8}, sample{10, 22}, sample{203, 3493},
+				sample{1, []byte("1")}, sample{2, []byte("2")}, sample{3, []byte("3")}, sample{6, []byte("6")}, sample{7, []byte("7")}, sample{9, []byte("9")}, sample{10, []byte("10")}, sample{203, []byte("203")},
 			},
 			expectedChks: []chunks.Meta{
 				tsdbutil.ChunkFromSamples([]tsdbutil.Sample{
-					sample{1, 2}, sample{2, 3}, sample{3, 5}, sample{6, 1},
+					sample{1, []byte("1")}, sample{2, []byte("2")}, sample{3, []byte("3")}, sample{6, []byte("6")},
 				}),
 				tsdbutil.ChunkFromSamples([]tsdbutil.Sample{
-					sample{7, 89}, sample{9, 8},
+					sample{7, []byte("7")}, sample{9, []byte("9")},
 				}),
 				tsdbutil.ChunkFromSamples([]tsdbutil.Sample{
-					sample{10, 22}, sample{203, 3493},
+					sample{10, []byte("10")}, sample{203, []byte("203")},
 				}),
 			},
 		},
@@ -688,8 +687,8 @@ func TestPopulateWithTombSeriesIterators(t *testing.T) {
 		{
 			name: "two chunks and seek beyond chunks",
 			chks: [][]tsdbutil.Sample{
-				{sample{1, 2}, sample{3, 5}, sample{6, 1}},
-				{sample{7, 89}, sample{9, 8}},
+				{sample{1, []byte("1")}, sample{3, []byte("3")}, sample{6, []byte("6")}},
+				{sample{7, []byte("7")}, sample{9, []byte("9")}},
 			},
 			seek: 10,
 
@@ -698,27 +697,27 @@ func TestPopulateWithTombSeriesIterators(t *testing.T) {
 		{
 			name: "two chunks and seek on middle of first chunk",
 			chks: [][]tsdbutil.Sample{
-				{sample{1, 2}, sample{3, 5}, sample{6, 1}},
-				{sample{7, 89}, sample{9, 8}},
+				{sample{1, []byte("1")}, sample{3, []byte("3")}, sample{6, []byte("6")}},
+				{sample{7, []byte("7")}, sample{9, []byte("9")}},
 			},
 			seek: 2,
 
 			seekSuccess: true,
 			expected: []tsdbutil.Sample{
-				sample{3, 5}, sample{6, 1}, sample{7, 89}, sample{9, 8},
+				sample{3, []byte("3")}, sample{6, []byte("6")}, sample{7, []byte("7")}, sample{9, []byte("9")},
 			},
 		},
 		{
 			name: "two chunks and seek before first chunk",
 			chks: [][]tsdbutil.Sample{
-				{sample{1, 2}, sample{3, 5}, sample{6, 1}},
-				{sample{7, 89}, sample{9, 8}},
+				{sample{1, []byte("1")}, sample{3, []byte("3")}, sample{6, []byte("6")}},
+				{sample{7, []byte("7")}, sample{9, []byte("9")}},
 			},
 			seek: -32,
 
 			seekSuccess: true,
 			expected: []tsdbutil.Sample{
-				sample{1, 2}, sample{3, 5}, sample{6, 1}, sample{7, 89}, sample{9, 8},
+				sample{1, []byte("1")}, sample{3, []byte("3")}, sample{6, []byte("6")}, sample{7, []byte("7")}, sample{9, []byte("9")},
 			},
 		},
 		// Deletion / Trim cases.
@@ -730,60 +729,60 @@ func TestPopulateWithTombSeriesIterators(t *testing.T) {
 		{
 			name: "two chunks with trimmed first and last samples from edge chunks",
 			chks: [][]tsdbutil.Sample{
-				{sample{1, 2}, sample{2, 3}, sample{3, 5}, sample{6, 1}},
-				{sample{7, 89}, sample{9, 8}},
+				{sample{1, []byte("1")}, sample{2, []byte("2")}, sample{3, []byte("3")}, sample{6, []byte("6")}},
+				{sample{7, []byte("7")}, sample{9, []byte("9")}},
 			},
 			intervals: tombstones.Intervals{{Mint: math.MinInt64, Maxt: 2}}.Add(tombstones.Interval{Mint: 9, Maxt: math.MaxInt64}),
 
 			expected: []tsdbutil.Sample{
-				sample{3, 5}, sample{6, 1}, sample{7, 89},
+				sample{3, []byte("3")}, sample{6, []byte("6")}, sample{7, []byte("7")},
 			},
 			expectedChks: []chunks.Meta{
 				tsdbutil.ChunkFromSamples([]tsdbutil.Sample{
-					sample{3, 5}, sample{6, 1},
+					sample{3, []byte("3")}, sample{6, []byte("6")},
 				}),
 				tsdbutil.ChunkFromSamples([]tsdbutil.Sample{
-					sample{7, 89},
+					sample{7, []byte("7")},
 				}),
 			},
 		},
 		{
 			name: "two chunks with trimmed middle sample of first chunk",
 			chks: [][]tsdbutil.Sample{
-				{sample{1, 2}, sample{2, 3}, sample{3, 5}, sample{6, 1}},
-				{sample{7, 89}, sample{9, 8}},
+				{sample{1, []byte("1")}, sample{2, []byte("2")}, sample{3, []byte("3")}, sample{6, []byte("6")}},
+				{sample{7, []byte("7")}, sample{9, []byte("9")}},
 			},
 			intervals: tombstones.Intervals{{Mint: 2, Maxt: 3}},
 
 			expected: []tsdbutil.Sample{
-				sample{1, 2}, sample{6, 1}, sample{7, 89}, sample{9, 8},
+				sample{1, []byte("1")}, sample{6, []byte("6")}, sample{7, []byte("7")}, sample{9, []byte("9")},
 			},
 			expectedChks: []chunks.Meta{
 				tsdbutil.ChunkFromSamples([]tsdbutil.Sample{
-					sample{1, 2}, sample{6, 1},
+					sample{1, []byte("1")}, sample{6, []byte("6")},
 				}),
 				tsdbutil.ChunkFromSamples([]tsdbutil.Sample{
-					sample{7, 89}, sample{9, 8},
+					sample{7, []byte("7")}, sample{9, []byte("9")},
 				}),
 			},
 		},
 		{
 			name: "two chunks with deletion across two chunks",
 			chks: [][]tsdbutil.Sample{
-				{sample{1, 2}, sample{2, 3}, sample{3, 5}, sample{6, 1}},
-				{sample{7, 89}, sample{9, 8}},
+				{sample{1, []byte("1")}, sample{2, []byte("2")}, sample{3, []byte("3")}, sample{6, []byte("6")}},
+				{sample{7, []byte("7")}, sample{9, []byte("9")}},
 			},
 			intervals: tombstones.Intervals{{Mint: 6, Maxt: 7}},
 
 			expected: []tsdbutil.Sample{
-				sample{1, 2}, sample{2, 3}, sample{3, 5}, sample{9, 8},
+				sample{1, []byte("1")}, sample{2, []byte("2")}, sample{3, []byte("3")}, sample{9, []byte("9")},
 			},
 			expectedChks: []chunks.Meta{
 				tsdbutil.ChunkFromSamples([]tsdbutil.Sample{
-					sample{1, 2}, sample{2, 3}, sample{3, 5},
+					sample{1, []byte("1")}, sample{2, []byte("2")}, sample{3, []byte("3")},
 				}),
 				tsdbutil.ChunkFromSamples([]tsdbutil.Sample{
-					sample{9, 8},
+					sample{9, []byte("9")},
 				}),
 			},
 		},
@@ -791,15 +790,15 @@ func TestPopulateWithTombSeriesIterators(t *testing.T) {
 		{
 			name: "two chunks with trimmed first and last samples from edge chunks, seek from middle of first chunk",
 			chks: [][]tsdbutil.Sample{
-				{sample{1, 2}, sample{2, 3}, sample{3, 5}, sample{6, 1}},
-				{sample{7, 89}, sample{9, 8}},
+				{sample{1, []byte("1")}, sample{2, []byte("2")}, sample{3, []byte("3")}, sample{6, []byte("6")}},
+				{sample{7, []byte("7")}, sample{9, []byte("9")}},
 			},
 			intervals: tombstones.Intervals{{Mint: math.MinInt64, Maxt: 2}}.Add(tombstones.Interval{Mint: 9, Maxt: math.MaxInt64}),
 
 			seek:        3,
 			seekSuccess: true,
 			expected: []tsdbutil.Sample{
-				sample{3, 5}, sample{6, 1}, sample{7, 89},
+				sample{3, []byte("3")}, sample{6, []byte("6")}, sample{7, []byte("7")},
 			},
 		},
 	}
@@ -855,8 +854,8 @@ func rmChunkRefs(chks []chunks.Meta) {
 func TestPopulateWithDelSeriesIterator_DoubleSeek(t *testing.T) {
 	f, chkMetas := createFakeReaderAndNotPopulatedChunks(
 		[]tsdbutil.Sample{},
-		[]tsdbutil.Sample{sample{1, 1}, sample{2, 2}, sample{3, 3}},
-		[]tsdbutil.Sample{sample{4, 4}, sample{5, 5}},
+		[]tsdbutil.Sample{sample{1, []byte("1")}, sample{2, []byte("2")}, sample{3, []byte("3")}},
+		[]tsdbutil.Sample{sample{4, []byte("4")}, sample{5, []byte("5")}},
 	)
 
 	it := newPopulateWithDelGenericSeriesIterator(f, chkMetas, nil).toSeriesIterator()
@@ -865,7 +864,7 @@ func TestPopulateWithDelSeriesIterator_DoubleSeek(t *testing.T) {
 	require.True(t, it.Seek(2))
 	ts, v := it.At()
 	require.Equal(t, int64(2), ts)
-	require.Equal(t, float64(2), v)
+	require.Equal(t, []byte("2"), v)
 }
 
 // Regression when seeked chunks were still found via binary search and we always
@@ -873,7 +872,7 @@ func TestPopulateWithDelSeriesIterator_DoubleSeek(t *testing.T) {
 func TestPopulateWithDelSeriesIterator_SeekInCurrentChunk(t *testing.T) {
 	f, chkMetas := createFakeReaderAndNotPopulatedChunks(
 		[]tsdbutil.Sample{},
-		[]tsdbutil.Sample{sample{1, 2}, sample{3, 4}, sample{5, 6}, sample{7, 8}},
+		[]tsdbutil.Sample{sample{1, []byte("1")}, sample{3, []byte("3")}, sample{5, []byte("5")}, sample{7, []byte("7")}},
 		[]tsdbutil.Sample{},
 	)
 
@@ -881,17 +880,17 @@ func TestPopulateWithDelSeriesIterator_SeekInCurrentChunk(t *testing.T) {
 	require.True(t, it.Next())
 	ts, v := it.At()
 	require.Equal(t, int64(1), ts)
-	require.Equal(t, float64(2), v)
+	require.Equal(t, []byte("1"), v)
 
 	require.True(t, it.Seek(4))
 	ts, v = it.At()
 	require.Equal(t, int64(5), ts)
-	require.Equal(t, float64(6), v)
+	require.Equal(t, []byte("5"), v)
 }
 
 func TestPopulateWithDelSeriesIterator_SeekWithMinTime(t *testing.T) {
 	f, chkMetas := createFakeReaderAndNotPopulatedChunks(
-		[]tsdbutil.Sample{sample{1, 6}, sample{5, 6}, sample{6, 8}},
+		[]tsdbutil.Sample{sample{1, []byte("1")}, sample{5, []byte("5")}, sample{6, []byte("6")}},
 	)
 
 	it := newPopulateWithDelGenericSeriesIterator(f, chkMetas, nil).toSeriesIterator()
@@ -903,7 +902,7 @@ func TestPopulateWithDelSeriesIterator_SeekWithMinTime(t *testing.T) {
 // Seek gets called and advances beyond the max time, which was just accepted as a valid sample.
 func TestPopulateWithDelSeriesIterator_NextWithMinTime(t *testing.T) {
 	f, chkMetas := createFakeReaderAndNotPopulatedChunks(
-		[]tsdbutil.Sample{sample{1, 6}, sample{5, 6}, sample{7, 8}},
+		[]tsdbutil.Sample{sample{0, []byte("1")}, sample{5, []byte("5")}, sample{7, []byte("7")}},
 	)
 
 	it := newPopulateWithDelGenericSeriesIterator(
@@ -979,14 +978,16 @@ func (cr mockChunkReader) Close() error {
 }
 
 func TestDeletedIterator(t *testing.T) {
-	chk := chunkenc.NewXORChunk()
+	chk := chunkenc.NewBytesChunk()
 	app, err := chk.Appender()
 	require.NoError(t, err)
 	// Insert random stuff from (0, 1000).
 	act := make([]sample, 1000)
 	for i := 0; i < 1000; i++ {
 		act[i].t = int64(i)
-		act[i].v = rand.Float64()
+		val := make([]byte, 4)
+		rand.Read(val)
+		act[i].v = val
 		app.Append(act[i].t, act[i].v)
 	}
 
@@ -1039,14 +1040,14 @@ func TestDeletedIterator(t *testing.T) {
 }
 
 func TestDeletedIterator_WithSeek(t *testing.T) {
-	chk := chunkenc.NewXORChunk()
+	chk := chunkenc.NewBytesChunk()
 	app, err := chk.Appender()
 	require.NoError(t, err)
 	// Insert random stuff from (0, 1000).
 	act := make([]sample, 1000)
 	for i := 0; i < 1000; i++ {
 		act[i].t = int64(i)
-		act[i].v = float64(i)
+		act[i].v = []byte(strconv.Itoa(i))
 		app.Append(act[i].t, act[i].v)
 	}
 
@@ -1557,11 +1558,11 @@ func TestPostingsForMatchers(t *testing.T) {
 	}()
 
 	app := h.Appender(context.Background())
-	app.Add(labels.FromStrings("n", "1"), 0, 0)
-	app.Add(labels.FromStrings("n", "1", "i", "a"), 0, 0)
-	app.Add(labels.FromStrings("n", "1", "i", "b"), 0, 0)
-	app.Add(labels.FromStrings("n", "2"), 0, 0)
-	app.Add(labels.FromStrings("n", "2.5"), 0, 0)
+	app.Add(labels.FromStrings("n", "1"), 0, []byte("0"))
+	app.Add(labels.FromStrings("n", "1", "i", "a"), 0, []byte("0"))
+	app.Add(labels.FromStrings("n", "1", "i", "b"), 0, []byte("0"))
+	app.Add(labels.FromStrings("n", "2"), 0, []byte("0"))
+	app.Add(labels.FromStrings("n", "2.5"), 0, []byte("0"))
 	require.NoError(t, app.Commit())
 
 	cases := []struct {

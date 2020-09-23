@@ -18,9 +18,8 @@ import (
 	"fmt"
 	"path/filepath"
 
+	"github.com/conprof/db/storage"
 	"github.com/go-kit/kit/log"
-
-	"github.com/prometheus/prometheus/storage"
 )
 
 var ErrInvalidTimes = fmt.Errorf("max time is lesser than min time")

@@ -28,13 +28,13 @@ import (
 	"sort"
 	"unsafe"
 
+	"github.com/conprof/db/tsdb/chunks"
+	"github.com/conprof/db/tsdb/encoding"
+	tsdb_errors "github.com/conprof/db/tsdb/errors"
+	"github.com/conprof/db/tsdb/fileutil"
 	"github.com/pkg/errors"
 
 	"github.com/prometheus/prometheus/pkg/labels"
-	"github.com/prometheus/prometheus/tsdb/chunks"
-	"github.com/prometheus/prometheus/tsdb/encoding"
-	tsdb_errors "github.com/prometheus/prometheus/tsdb/errors"
-	"github.com/prometheus/prometheus/tsdb/fileutil"
 )
 
 const (

@@ -180,7 +180,9 @@ func (r *Reader) Err() error {
 // Record returns the current record. The returned byte slice is only
 // valid until the next call to Next.
 func (r *Reader) Record() []byte {
-	return r.rec
+	rec := make([]byte, len(r.rec))
+	copy(rec, r.rec)
+	return rec
 }
 
 // Segment returns the current segment being read.

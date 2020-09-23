@@ -24,14 +24,14 @@ import (
 	"sort"
 	"testing"
 
+	"github.com/conprof/db/tsdb/chunkenc"
+	"github.com/conprof/db/tsdb/chunks"
+	"github.com/conprof/db/tsdb/encoding"
 	"github.com/pkg/errors"
 	"github.com/stretchr/testify/require"
 	"go.uber.org/goleak"
 
 	"github.com/prometheus/prometheus/pkg/labels"
-	"github.com/prometheus/prometheus/tsdb/chunkenc"
-	"github.com/prometheus/prometheus/tsdb/chunks"
-	"github.com/prometheus/prometheus/tsdb/encoding"
 	"github.com/prometheus/prometheus/util/testutil"
 )
 
@@ -375,7 +375,7 @@ func TestPersistence_index_e2e(t *testing.T) {
 				MinTime: int64(j * 10000),
 				MaxTime: int64((j + 1) * 10000),
 				Ref:     rand.Uint64(),
-				Chunk:   chunkenc.NewXORChunk(),
+				Chunk:   chunkenc.NewBytesChunk(),
 			})
 		}
 		input = append(input, &indexWriterSeries{

@@ -29,11 +29,10 @@ import (
 	"testing"
 	"time"
 
+	tsdb_errors "github.com/conprof/db/tsdb/errors"
 	"github.com/go-kit/kit/log"
-	"github.com/stretchr/testify/require"
-
-	tsdb_errors "github.com/prometheus/prometheus/tsdb/errors"
 	"github.com/prometheus/prometheus/util/testutil"
+	"github.com/stretchr/testify/require"
 )
 
 type reader interface {

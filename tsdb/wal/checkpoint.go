@@ -25,14 +25,13 @@ import (
 	"strconv"
 	"strings"
 
+	tsdb_errors "github.com/conprof/db/tsdb/errors"
+	"github.com/conprof/db/tsdb/fileutil"
+	"github.com/conprof/db/tsdb/record"
+	"github.com/conprof/db/tsdb/tombstones"
 	"github.com/go-kit/kit/log"
 	"github.com/go-kit/kit/log/level"
 	"github.com/pkg/errors"
-
-	tsdb_errors "github.com/prometheus/prometheus/tsdb/errors"
-	"github.com/prometheus/prometheus/tsdb/fileutil"
-	"github.com/prometheus/prometheus/tsdb/record"
-	"github.com/prometheus/prometheus/tsdb/tombstones"
 )
 
 // CheckpointStats returns stats about a created checkpoint.

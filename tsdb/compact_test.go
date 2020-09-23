@@ -24,16 +24,15 @@ import (
 	"testing"
 	"time"
 
+	"github.com/conprof/db/tsdb/chunkenc"
+	"github.com/conprof/db/tsdb/chunks"
+	"github.com/conprof/db/tsdb/fileutil"
+	"github.com/conprof/db/tsdb/tombstones"
 	"github.com/go-kit/kit/log"
 	"github.com/pkg/errors"
 	prom_testutil "github.com/prometheus/client_golang/prometheus/testutil"
-	"github.com/stretchr/testify/require"
-
 	"github.com/prometheus/prometheus/pkg/labels"
-	"github.com/prometheus/prometheus/tsdb/chunkenc"
-	"github.com/prometheus/prometheus/tsdb/chunks"
-	"github.com/prometheus/prometheus/tsdb/fileutil"
-	"github.com/prometheus/prometheus/tsdb/tombstones"
+	"github.com/stretchr/testify/require"
 )
 
 func TestSplitByRange(t *testing.T) {
@@ -1098,7 +1097,7 @@ func BenchmarkCompactionFromHead(b *testing.B) {
 			for ln := 0; ln < labelNames; ln++ {
 				app := h.Appender(context.Background())
 				for lv := 0; lv < labelValues; lv++ {
-					app.Add(labels.FromStrings(fmt.Sprintf("%d", ln), fmt.Sprintf("%d%s%d", lv, postingsBenchSuffix, ln)), 0, 0)
+					app.Add(labels.FromStrings(fmt.Sprintf("%d", ln), fmt.Sprintf("%d%s%d", lv, postingsBenchSuffix, ln)), 0, []byte("0"))
 				}
 				require.NoError(b, app.Commit())
 			}
@@ -1131,9 +1130,9 @@ func TestDisableAutoCompactions(t *testing.T) {
 	db.DisableCompactions()
 	app := db.Appender(context.Background())
 	for i := int64(0); i < 3; i++ {
-		_, err := app.Add(label, i*blockRange, 0)
+		_, err := app.Add(label, i*blockRange, []byte("0"))
 		require.NoError(t, err)
-		_, err = app.Add(label, i*blockRange+1000, 0)
+		_, err = app.Add(label, i*blockRange+1000, []byte("0"))
 		require.NoError(t, err)
 	}
 	require.NoError(t, app.Commit())
@@ -1246,11 +1245,11 @@ func TestDeleteCompactionBlockAfterFailedReload(t *testing.T) {
 
 			// Add some data to the head that is enough to trigger a compaction.
 			app := db.Appender(context.Background())
-			_, err := app.Add(defaultLabel, 1, 0)
+			_, err := app.Add(defaultLabel, 1, []byte("0"))
 			require.NoError(t, err)
-			_, err = app.Add(defaultLabel, 2, 0)
+			_, err = app.Add(defaultLabel, 2, []byte("0"))
 			require.NoError(t, err)
-			_, err = app.Add(defaultLabel, 3+rangeToTriggerCompaction, 0)
+			_, err = app.Add(defaultLabel, 3+rangeToTriggerCompaction, []byte("0"))
 			require.NoError(t, err)
 			require.NoError(t, app.Commit())
 
