@@ -2098,7 +2098,7 @@ func (s *memSeries) append(t int64, v []byte, appendID uint64, chunkDiskMapper *
 	// Based on Gorilla white papers this offers near-optimal compression ratio
 	// so anything bigger that this has diminishing returns and increases
 	// the time range within which we have to decompress all samples.
-	const samplesPerChunk = 120
+	const samplesPerChunk = 10
 
 	c := s.head()
 
