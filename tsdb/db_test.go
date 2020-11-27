@@ -496,7 +496,7 @@ func TestSkippingInvalidValuesInSameTxn(t *testing.T) {
 	ssMap := query(t, q, labels.MustNewMatcher(labels.MatchEqual, "a", "b"))
 
 	testutil.Equals(t, map[string][]tsdbutil.Sample{
-		labels.New(labels.Label{Name: "a", Value: "b"}).String(): {sample{0, []byte("0")}},
+		labels.New(labels.Label{Name: "a", Value: "b"}).String(): {sample{0, []byte("1")}},
 	}, ssMap)
 
 	// Append Out of Order Value.
@@ -513,7 +513,7 @@ func TestSkippingInvalidValuesInSameTxn(t *testing.T) {
 	ssMap = query(t, q, labels.MustNewMatcher(labels.MatchEqual, "a", "b"))
 
 	testutil.Equals(t, map[string][]tsdbutil.Sample{
-		labels.New(labels.Label{Name: "a", Value: "b"}).String(): {sample{0, []byte("0")}, sample{10, []byte("10")}},
+		labels.New(labels.Label{Name: "a", Value: "b"}).String(): {sample{0, []byte("1")}, sample{10, []byte("3")}},
 	}, ssMap)
 }
 
@@ -562,7 +562,7 @@ func TestDB_Snapshot(t *testing.T) {
 	}
 	testutil.Ok(t, seriesSet.Err())
 	testutil.Equals(t, 0, len(seriesSet.Warnings()))
-	testutil.Equals(t, strings.Repeat("1", 1000), sum)
+	testutil.Equals(t, []byte(strings.Repeat("1", 1000)), sum)
 }
 
 // TestDB_Snapshot_ChunksOutsideOfCompactedRange ensures that a snapshot removes chunks samples
@@ -616,7 +616,7 @@ func TestDB_Snapshot_ChunksOutsideOfCompactedRange(t *testing.T) {
 	testutil.Equals(t, 0, len(seriesSet.Warnings()))
 
 	// Since we snapshotted with MaxTime - 10, so expect 10 less samples.
-	testutil.Equals(t, strings.Repeat("1", 1000-10), sum)
+	testutil.Equals(t, []byte(strings.Repeat("1", 1000-10)), sum)
 }
 
 func TestDB_SnapshotWithDelete(t *testing.T) {
@@ -2238,7 +2238,7 @@ func TestDBReadOnly_FlushWAL(t *testing.T) {
 	}
 	testutil.Ok(t, seriesSet.Err())
 	testutil.Equals(t, 0, len(seriesSet.Warnings()))
-	testutil.Equals(t, 1000.0, sum)
+	testutil.Equals(t, []byte(strings.Repeat("1.0", 1000)), sum)
 }
 
 func TestDBCannotSeePartialCommits(t *testing.T) {

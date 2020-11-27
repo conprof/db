@@ -373,7 +373,7 @@ func TestPersistence_index_e2e(t *testing.T) {
 				MinTime: int64(j * 10000),
 				MaxTime: int64((j + 1) * 10000),
 				Ref:     rand.Uint64(),
-				Chunk:   chunkenc.NewXORChunk(),
+				Chunk:   chunkenc.NewBytesChunk(),
 			})
 		}
 		input = append(input, &indexWriterSeries{

@@ -312,10 +312,10 @@ func TestHead_WALMultiRef(t *testing.T) {
 	testutil.Ok(t, err)
 	series := query(t, q, labels.MustNewMatcher(labels.MatchEqual, "foo", "bar"))
 	testutil.Equals(t, map[string][]tsdbutil.Sample{`{foo="bar"}`: {
-		sample{100, []byte("100")},
-		sample{1500, []byte("1500")},
-		sample{1700, []byte("1700")},
-		sample{2000, []byte("2000")},
+		sample{100, []byte("1")},
+		sample{1500, []byte("2")},
+		sample{1700, []byte("3")},
+		sample{2000, []byte("4")},
 	}}, series)
 }
 
@@ -669,7 +669,7 @@ func TestDeleteUntilCurMax(t *testing.T) {
 	it = exps.Iterator()
 	resSamples, err := storage.ExpandSamples(it, newSample)
 	testutil.Ok(t, err)
-	testutil.Equals(t, []tsdbutil.Sample{sample{11, []byte("11")}}, resSamples)
+	testutil.Equals(t, []tsdbutil.Sample{sample{11, []byte("1")}}, resSamples)
 	for res.Next() {
 	}
 	testutil.Ok(t, res.Err())
@@ -1002,7 +1002,7 @@ func TestMemSeries_append(t *testing.T) {
 	for i, c := range s.mmappedChunks[1:] {
 		chk, err := chunkDiskMapper.Chunk(c.ref)
 		testutil.Ok(t, err)
-		testutil.Assert(t, chk.NumSamples() > 100, "unexpected small chunk %d of length %d", i, chk.NumSamples())
+		testutil.Assert(t, chk.NumSamples() > 10, "unexpected small chunk %d of length %d", i, chk.NumSamples())
 	}
 }
 

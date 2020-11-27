@@ -148,7 +148,7 @@ func TestCorruptedChunk(t *testing.T) {
 				testutil.Ok(t, err)
 				testutil.Ok(t, f.Truncate(fi.Size()-1))
 			},
-			iterErr: errors.New("cannot populate chunk 8: segment doesn't include enough bytes to read the chunk - required:26, available:25"),
+			iterErr: errors.New("cannot populate chunk 8: segment doesn't include enough bytes to read the chunk - required:19, available:18"),
 		},
 		{
 			name: "checksum mismatch",
@@ -166,7 +166,7 @@ func TestCorruptedChunk(t *testing.T) {
 				testutil.Ok(t, err)
 				testutil.Equals(t, n, 1)
 			},
-			iterErr: errors.New("cannot populate chunk 8: checksum mismatch expected:cfc0526c, actual:34815eae"),
+			iterErr: errors.New("cannot populate chunk 8: checksum mismatch expected:11347d90, actual:28fdbbe0"),
 		},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
@@ -267,19 +267,21 @@ func TestBlockSize(t *testing.T) {
 
 func TestReadIndexFormatV1(t *testing.T) {
 	/* The block here was produced at the commit
-	    706602daed1487f7849990678b4ece4599745905 used in 2.0.0 with:
-	   db, _ := Open("v1db", nil, nil, nil)
-	   app := db.Appender()
-	   app.Add(labels.FromStrings("foo", "bar"), 1, 2)
-	   app.Add(labels.FromStrings("foo", "baz"), 3, 4)
-	   app.Add(labels.FromStrings("foo", "meh"), 1000*3600*4, 4) // Not in the block.
-	   // Make sure we've enough values for the lack of sorting of postings offsets to show up.
-	   for i := 0; i < 100; i++ {
-	     app.Add(labels.FromStrings("bar", strconv.FormatInt(int64(i), 10)), 0, 0)
-	   }
-	   app.Commit()
-	   db.compact()
-	   db.Close()
+	   github.com/conprof/db @ d202624dc72c95bfeb2a97d711709cfb7e4424cd:
+	{
+		db, _ := Open(filepath.Join("testdata", "index_format_v1"), nil, nil, nil)
+		app := db.Appender(context.Background())
+		app.Add(labels.FromStrings("foo", "bar"), 1, []byte("2"))
+		app.Add(labels.FromStrings("foo", "baz"), 3, []byte("4"))
+		app.Add(labels.FromStrings("foo", "meh"), 1000*3600*4, []byte("4")) // Not in the block.
+		// Make sure we've enough values for the lack of sorting of postings offsets to show up.
+		for i := 0; i < 100; i++ {
+			app.Add(labels.FromStrings("bar", strconv.FormatInt(int64(i), 10)), 0, []byte("0"))
+		}
+		app.Commit()
+		db.Compact()
+		db.Close()
+	}
 	*/
 
 	blockDir := filepath.Join("testdata", "index_format_v1")
@@ -368,8 +370,8 @@ func genSeries(totalSeries, labelCount int, mint, maxt int64) []storage.Series {
 			lbls[defaultLabelName+strconv.Itoa(j)] = defaultLabelValue + strconv.Itoa(j)
 		}
 		samples := make([]tsdbutil.Sample, 0, maxt-mint+1)
-		val := make([]byte, 4)
 		for t := mint; t < maxt; t++ {
+			val := make([]byte, 4)
 			rand.Read(val)
 			samples = append(samples, sample{t: t, v: val})
 		}

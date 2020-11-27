@@ -632,7 +632,7 @@ Outer:
 	}
 
 	if unknownRefs.Load() > 0 {
-		level.Warn(h.logger).Log("msg", "Unknown series references", "count", unknownRefs)
+		level.Warn(h.logger).Log("msg", "Unknown series references", "count", unknownRefs.Load())
 	}
 	return nil
 }
@@ -2098,7 +2098,7 @@ func (s *memSeries) append(t int64, v []byte, appendID uint64, chunkDiskMapper *
 	// Based on Gorilla white papers this offers near-optimal compression ratio
 	// so anything bigger that this has diminishing returns and increases
 	// the time range within which we have to decompress all samples.
-	const samplesPerChunk = 10
+	const samplesPerChunk = 12
 
 	c := s.head()
 

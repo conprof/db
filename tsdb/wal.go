@@ -1157,7 +1157,9 @@ func (r *walReader) decodeSamples(flag byte, b []byte, res *[]record.RefSample) 
 	for len(dec.B) > 0 && dec.Err() == nil {
 		dref := dec.Varint64()
 		dtime := dec.Varint64()
-		val := dec.UvarintBytes()
+		v := dec.UvarintBytes()
+		val := make([]byte, len(v))
+		copy(val, v)
 
 		*res = append(*res, record.RefSample{
 			Ref: uint64(int64(baseRef) + dref),

@@ -864,7 +864,7 @@ func TestPopulateWithDelSeriesIterator_DoubleSeek(t *testing.T) {
 	testutil.Assert(t, it.Seek(2), "")
 	ts, v := it.At()
 	testutil.Equals(t, int64(2), ts)
-	testutil.Equals(t, float64(2), v)
+	testutil.Equals(t, []byte("2"), v)
 }
 
 // Regression when seeked chunks were still found via binary search and we always
@@ -880,12 +880,12 @@ func TestPopulateWithDelSeriesIterator_SeekInCurrentChunk(t *testing.T) {
 	testutil.Assert(t, it.Next(), "")
 	ts, v := it.At()
 	testutil.Equals(t, int64(1), ts)
-	testutil.Equals(t, float64(2), v)
+	testutil.Equals(t, []byte("1"), v)
 
 	testutil.Assert(t, it.Seek(4), "")
 	ts, v = it.At()
 	testutil.Equals(t, int64(5), ts)
-	testutil.Equals(t, float64(6), v)
+	testutil.Equals(t, []byte("5"), v)
 }
 
 func TestPopulateWithDelSeriesIterator_SeekWithMinTime(t *testing.T) {
@@ -983,9 +983,9 @@ func TestDeletedIterator(t *testing.T) {
 	testutil.Ok(t, err)
 	// Insert random stuff from (0, 1000).
 	act := make([]sample, 1000)
-	val := make([]byte, 4)
 	for i := 0; i < 1000; i++ {
 		act[i].t = int64(i)
+		val := make([]byte, 4)
 		rand.Read(val)
 		act[i].v = val
 		app.Append(act[i].t, act[i].v)

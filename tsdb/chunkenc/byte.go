@@ -94,19 +94,21 @@ func (c *BytesChunk) Compact() {
 
 // Appender implements the Chunk interface.
 func (c *BytesChunk) Appender() (Appender, error) {
-	// it := c.iterator()
+	it := c.iterator(nil)
 
-	// // To get an appender we must know the state it would have if we had
-	// // appended all existing data from scratch.
-	// // We iterate through the end and populate via the iterator's state.
-	// for it.Next() {
-	// }
-	// if err := it.Err(); err != nil {
-	// 	return nil, err
-	// }
+	// To get an appender we must know the state it would have if we had
+	// appended all existing data from scratch.
+	// We iterate through the end and populate via the iterator's state.
+	for it.Next() {
+	}
+	if err := it.Err(); err != nil {
+		return nil, err
+	}
 
 	a := &bytesAppender{
-		b: c,
+		b:      c,
+		t:      it.t,
+		tDelta: it.tDelta,
 	}
 	return a, nil
 }

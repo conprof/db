@@ -39,8 +39,8 @@ func (e Encoding) String() string {
 // The different available chunk encodings.
 const (
 	EncNone Encoding = iota
-	EncXOR
 	EncBytes
+	EncXOR
 )
 
 // Chunk holds a sequence of sample pairs that can be iterated over and appended to.
@@ -129,7 +129,8 @@ func NewPool() Pool {
 
 func (p *pool) Get(e Encoding, b []byte) (Chunk, error) {
 	switch e {
-	//case EncXOR:
+	case EncXOR:
+		panic("nothing should be using XOR encoding")
 	//	c := p.xor.Get().(*XORChunk)
 	//	c.b.stream = b
 	//	c.b.count = 0
@@ -144,7 +145,8 @@ func (p *pool) Get(e Encoding, b []byte) (Chunk, error) {
 
 func (p *pool) Put(c Chunk) error {
 	switch c.Encoding() {
-	//case EncXOR:
+	case EncXOR:
+		panic("nothing should be using XOR encoding")
 	//	xc, ok := c.(*XORChunk)
 	//	// This may happen often with wrapped chunks. Nothing we can really do about
 	//	// it but returning an error would cause a lot of allocations again. Thus,
@@ -176,7 +178,8 @@ func (p *pool) Put(c Chunk) error {
 // bytes.
 func FromData(e Encoding, d []byte) (Chunk, error) {
 	switch e {
-	//case EncXOR:
+	case EncXOR:
+		panic("nothing should be using XOR encoding")
 	//	return &XORChunk{b: bstream{count: 0, stream: d}}, nil
 	case EncBytes:
 		return &BytesChunk{b: d}, nil
