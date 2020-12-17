@@ -204,9 +204,11 @@ func TestCorruptedChunk(t *testing.T) {
 
 			// Check chunk errors during iter time.
 			require.True(t, set.Next())
-			it := set.At().Iterator()
-			require.Equal(t, false, it.Next())
-			require.Equal(t, tc.iterErr.Error(), it.Err().Error())
+
+			// TODO(brancz): We only disabled CRC checks until we find a better solution, as this is currently causing a performance bottleneck.
+			//it := set.At().Iterator()
+			//require.Equal(t, false, it.Next())
+			//require.Equal(t, tc.iterErr.Error(), it.Err().Error())
 		})
 	}
 }

@@ -15,7 +15,6 @@ package chunks
 
 import (
 	"bufio"
-	"bytes"
 	"encoding/binary"
 	"fmt"
 	"hash"
@@ -504,7 +503,7 @@ func (s *Reader) Chunk(ref uint64) (chunkenc.Chunk, error) {
 		// Get the lower 4 bytes.
 		// These contain the segment offset where the data for this chunk starts.
 		chkStart = int((ref << 32) >> 32)
-		chkCRC32 = newCRC32()
+		//chkCRC32 = newCRC32()
 	)
 
 	if sgmIndex >= len(s.bs) {
@@ -533,14 +532,14 @@ func (s *Reader) Chunk(ref uint64) (chunkenc.Chunk, error) {
 		return nil, errors.Errorf("segment doesn't include enough bytes to read the chunk - required:%v, available:%v", chkEnd, sgmBytes.Len())
 	}
 
-	sum := sgmBytes.Range(chkDataEnd, chkEnd)
-	if _, err := chkCRC32.Write(sgmBytes.Range(chkEncStart, chkDataEnd)); err != nil {
-		return nil, err
-	}
+	//sum := sgmBytes.Range(chkDataEnd, chkEnd)
+	//if _, err := chkCRC32.Write(sgmBytes.Range(chkEncStart, chkDataEnd)); err != nil {
+	//	return nil, err
+	//}
 
-	if act := chkCRC32.Sum(nil); !bytes.Equal(act, sum) {
-		return nil, errors.Errorf("checksum mismatch expected:%x, actual:%x", sum, act)
-	}
+	//if act := chkCRC32.Sum(nil); !bytes.Equal(act, sum) {
+	//	return nil, errors.Errorf("checksum mismatch expected:%x, actual:%x", sum, act)
+	//}
 
 	chkData := sgmBytes.Range(chkDataStart, chkDataEnd)
 	chkEnc := sgmBytes.Range(chkEncStart, chkEncStart+ChunkEncodingSize)[0]
