@@ -46,6 +46,7 @@ package chunkenc
 import (
 	"bytes"
 	"encoding/binary"
+	"io"
 	"math"
 )
 
@@ -185,6 +186,8 @@ type bytesIterator struct {
 	numTotal uint16
 	numRead  uint16
 
+	skipValue bool
+
 	t   int64
 	val []byte
 
@@ -218,6 +221,7 @@ func (it *bytesIterator) Reset(b []byte) {
 	it.val = nil
 	it.tDelta = 0
 	it.err = nil
+	it.skipValue = false
 }
 
 func (it *bytesIterator) Err() error {
@@ -250,16 +254,21 @@ func (it *bytesIterator) Next() bool {
 		return false
 	}
 
-	it.val = make([]byte, sampleLen)
-	_, err = it.br.Read(it.val)
-	if err != nil {
-		it.err = err
-		return false
-	}
-
-	// Convert an empty sample value to a nil array as this is what the reader will expect.
-	if bytes.Equal(it.val, []byte(" ")) {
+	if it.skipValue {
+		it.br.Seek(int64(sampleLen), io.SeekCurrent)
 		it.val = nil
+	} else {
+		it.val = make([]byte, sampleLen)
+		_, err = it.br.Read(it.val)
+		if err != nil {
+			it.err = err
+			return false
+		}
+
+		// Convert an empty sample value to a nil array as this is what the reader will expect.
+		if bytes.Equal(it.val, []byte(" ")) {
+			it.val = nil
+		}
 	}
 
 	it.numRead++

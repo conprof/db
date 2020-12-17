@@ -138,6 +138,10 @@ func (q *blockQuerier) Select(sortSeries bool, hints *storage.SelectHints, ms ..
 			// When you're only looking up metadata (for example series API), you don't need to load any chunks.
 			return newBlockSeriesSet(q.index, newNopChunkReader(), q.tombstones, p, mint, maxt)
 		}
+		if hints.Func == "timestamps" {
+			// When only querying timestamps we don't care about values.
+			return newBlockSeriesSet(q.index, newChunkTimestampReader(q.chunks), q.tombstones, p, mint, maxt)
+		}
 	}
 
 	return newBlockSeriesSet(q.index, q.chunks, q.tombstones, p, mint, maxt)
