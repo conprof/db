@@ -434,7 +434,7 @@ func testChunkDiskMapper(t *testing.T) *ChunkDiskMapper {
 }
 
 func randomChunk(t *testing.T) chunkenc.Chunk {
-	chunk := chunkenc.NewBytesChunk()
+	chunk := chunkenc.NewBytesTimestampsChunk()
 	len := rand.Int() % 120
 	app, err := chunk.Appender()
 	require.NoError(t, err)

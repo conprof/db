@@ -89,7 +89,7 @@ func (c *TimestampDoubleDeltaChunk) Compact() {
 }
 
 // Appender implements the Chunk interface.
-func (c *TimestampDoubleDeltaChunk) Appender() (TimestampAppender, error) {
+func (c *TimestampDoubleDeltaChunk) Appender() (*timestampAppender, error) {
 	it := c.iterator(nil)
 
 	// To get an appender we must know the state it would have if we had
@@ -125,7 +125,7 @@ func (c *TimestampDoubleDeltaChunk) iterator(it TimestampIterator) *timestampsIt
 }
 
 // Iterator implements the Chunk interface.
-func (c *TimestampDoubleDeltaChunk) Iterator(it TimestampIterator) TimestampIterator {
+func (c *TimestampDoubleDeltaChunk) Iterator(it TimestampIterator) *timestampsIterator {
 	return c.iterator(it)
 }
 
@@ -162,7 +162,6 @@ func (a *timestampAppender) Append(t int64) {
 	binary.BigEndian.PutUint16(a.b.b, num+1)
 
 	a.tDelta = tDelta
-
 }
 
 type timestampsIterator struct {
@@ -229,5 +228,4 @@ func (it *timestampsIterator) Next() bool {
 
 	it.numRead++
 	return true
-
 }

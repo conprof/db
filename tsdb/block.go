@@ -112,6 +112,11 @@ type ChunkReader interface {
 	Close() error
 }
 
+//type ChunkTimestampReader interface {
+//	ChunkReader
+//	TimestampChunk(ref uint64) (chunkenc.TimestampChunk, error)
+//}
+
 // BlockReader provides reading access to a data block.
 type BlockReader interface {
 	// Index returns an IndexReader over the block's data.

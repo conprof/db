@@ -129,7 +129,7 @@ func createIdxChkReaders(t *testing.T, tc []seriesSamples) (IndexReader, ChunkRe
 				Ref:     chunkRef,
 			})
 
-			chunk := chunkenc.NewBytesChunk()
+			chunk := chunkenc.NewBytesTimestampsChunk()
 			app, _ := chunk.Appender()
 			for _, smpl := range chk {
 				app.Append(smpl.t, smpl.v)
@@ -978,7 +978,7 @@ func (cr mockChunkReader) Close() error {
 }
 
 func TestDeletedIterator(t *testing.T) {
-	chk := chunkenc.NewBytesChunk()
+	chk := chunkenc.NewBytesTimestampsChunk()
 	app, err := chk.Appender()
 	require.NoError(t, err)
 	// Insert random stuff from (0, 1000).
@@ -1040,7 +1040,7 @@ func TestDeletedIterator(t *testing.T) {
 }
 
 func TestDeletedIterator_WithSeek(t *testing.T) {
-	chk := chunkenc.NewBytesChunk()
+	chk := chunkenc.NewBytesTimestampsChunk()
 	app, err := chk.Appender()
 	require.NoError(t, err)
 	// Insert random stuff from (0, 1000).

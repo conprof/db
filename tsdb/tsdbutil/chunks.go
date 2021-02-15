@@ -44,7 +44,7 @@ func ChunkFromSamplesGeneric(s Samples) chunks.Meta {
 		mint, maxt = s.Get(0).T(), s.Get(s.Len()-1).T()
 	}
 
-	c := chunkenc.NewBytesChunk()
+	c := chunkenc.NewBytesTimestampsChunk()
 	ca, _ := c.Appender()
 
 	for i := 0; i < s.Len(); i++ {

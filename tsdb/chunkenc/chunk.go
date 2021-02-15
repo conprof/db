@@ -70,7 +70,7 @@ type Chunk interface {
 	Compact()
 }
 
-// Chunk holds a sequence of sample pairs that can be iterated over and appended to.
+// TimestampChunk holds a sequence of timestamps that can be iterated over and appended to.
 type TimestampChunk interface {
 	// Bytes returns the underlying byte slice of the chunk.
 	Bytes() []byte
