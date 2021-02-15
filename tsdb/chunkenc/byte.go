@@ -273,5 +273,4 @@ func (it *bytesIterator) Next() bool {
 
 	it.numRead++
 	return true
-
 }

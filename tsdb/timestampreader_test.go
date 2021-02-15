@@ -8,7 +8,7 @@ import (
 )
 
 func TestTimestampChunk(t *testing.T) {
-	c := chunkenc.NewBytesChunk()
+	c := chunkenc.NewBytesTimestampsChunk()
 	app, err := c.Appender()
 	require.NoError(t, err)
 	app.Append(0, []byte("abc"))
@@ -40,7 +40,7 @@ func TestTimestampChunk(t *testing.T) {
 }
 
 func TestReencodeChunk(t *testing.T) {
-	c := chunkenc.NewBytesChunk()
+	c := chunkenc.NewBytesTimestampsChunk()
 	app, err := c.Appender()
 	require.NoError(t, err)
 	app.Append(0, []byte("abc"))

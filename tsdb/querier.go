@@ -625,7 +625,7 @@ func (p *populateWithDelChunkSeriesIterator) Next() bool {
 	}
 
 	// Re-encode the chunk if iterator is provider. This means that it has some samples to be deleted or chunk is opened.
-	newChunk := chunkenc.NewBytesChunk()
+	newChunk := chunkenc.NewBytesTimestampsChunk()
 	app, err := newChunk.Appender()
 	if err != nil {
 		p.err = err
@@ -841,7 +841,7 @@ type nopChunkReader struct {
 
 func newNopChunkReader() ChunkReader {
 	return nopChunkReader{
-		emptyChunk: chunkenc.NewBytesChunk(),
+		emptyChunk: chunkenc.NewBytesTimestampsChunk(),
 	}
 }
 

@@ -219,7 +219,7 @@ type seriesToChunkEncoder struct {
 
 // TODO(bwplotka): Currently encoder will just naively build one chunk, without limit. Split it: https://github.com/prometheus/tsdb/issues/670
 func (s *seriesToChunkEncoder) Iterator() chunks.Iterator {
-	chk := chunkenc.NewBytesChunk()
+	chk := chunkenc.NewBytesTimestampsChunk()
 	app, err := chk.Appender()
 	if err != nil {
 		return errChunksIterator{err: err}
