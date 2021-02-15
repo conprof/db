@@ -185,6 +185,10 @@ func (p *pool) Get(e Encoding, b []byte) (Chunk, error) {
 	//	c.b.stream = b
 	//	c.b.count = 0
 	//	return c, nil
+
+	// needs new case for our new encoding
+	// c.immutable needs to be set = true
+	// (need to double check also where else this Pool is used to see if this immutable thing is safe to do)
 	case EncBytes:
 		c := p.xor.Get().(*BytesChunk)
 		c.b = b
@@ -217,6 +221,8 @@ func (p *pool) Put(c Chunk) error {
 		}
 		xc.b = nil
 		p.xor.Put(c)
+	// needs new case for new encoding
+	// needs to reset chunk.immutable = false
 	default:
 		return errors.Errorf("invalid chunk encoding %q", c.Encoding())
 	}
