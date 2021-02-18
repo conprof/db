@@ -16,7 +16,7 @@ func TestValueChunk(t *testing.T) {
 		app.Append(0, v)
 	}
 
-	require.Equal(t, 80002, len(c.Bytes())) // TODO: Double check that 80002 is actually correct
+	require.Equal(t, 80000, len(c.Bytes()))
 
 	it := c.Iterator(nil)
 

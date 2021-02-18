@@ -10,7 +10,13 @@ import (
 
 func TestLoadBytesChunk(t *testing.T) {
 	// tree samples added (0,conprof) (1,conprof) (2,conprof)
-	bytes := []byte{0, 3, 0, 0, 0, 5, 0, 0, 0, 26, 0, 3, 0, 1, 0, 0, 3, 7, 99, 111, 110, 112, 114, 111, 102, 7, 99, 111, 110, 112, 114, 111, 102, 7, 99, 111, 110, 112, 114, 111, 102}
+	bytes := []byte{
+		0, 3, // numSamples
+		0, 0, 0, 3, // timestampChunk len
+		0, 0, 0, 24, // valueChunk len
+		0, 1, 0, // timestampChunk
+		7, 99, 111, 110, 112, 114, 111, 102, 7, 99, 111, 110, 112, 114, 111, 102, 7, 99, 111, 110, 112, 114, 111, 102, // valueChunk
+	}
 
 	// Create new BytesChunk with previous bytes
 	c := LoadBytesChunk(bytes)
@@ -18,10 +24,10 @@ func TestLoadBytesChunk(t *testing.T) {
 	require.Equal(t, bytes, c.Bytes())
 	require.Equal(t, EncBytes, c.Encoding())
 
-	require.Equal(t, []byte{0, 3, 0, 1, 0}, c.tc.Bytes())
+	require.Equal(t, []byte{0, 1, 0}, c.tc.Bytes())
 	require.Equal(t, 3, c.tc.NumSamples())
 
-	require.Equal(t, []byte{0, 3, 7, 99, 111, 110, 112, 114, 111, 102, 7, 99, 111, 110, 112, 114, 111, 102, 7, 99, 111, 110, 112, 114, 111, 102}, c.vc.Bytes())
+	require.Equal(t, []byte{7, 99, 111, 110, 112, 114, 111, 102, 7, 99, 111, 110, 112, 114, 111, 102, 7, 99, 111, 110, 112, 114, 111, 102}, c.vc.Bytes())
 	require.Equal(t, 3, c.vc.NumSamples())
 }
 
@@ -40,20 +46,20 @@ func TestBytesChunk_Appender(t *testing.T) {
 	require.Equal(t, total, c.tc.NumSamples())
 	require.Equal(t, total, c.vc.NumSamples())
 
-	require.Len(t, c.tc.b, 12)
-	require.Len(t, c.vc.b, 82)
+	require.Len(t, c.tc.b, 10)
+	require.Len(t, c.vc.b, 80)
 	require.Len(t, c.b, 0) // Isn't populated yet
 
 	bytes := c.Bytes()
-	require.Len(t, bytes, 104) // 2 (numSamples) + 2*4 (two chunk length) + 12+82 (chunks)
+	require.Len(t, bytes, 100) // 2 (numSamples) + 2*4 (two chunk length) + 10+80 (chunks)
 
 	numSamples := binary.BigEndian.Uint16(bytes[0:])
 	tLen := binary.BigEndian.Uint32(bytes[2:])
 	vLen := binary.BigEndian.Uint32(bytes[6:])
 
 	require.Equal(t, uint16(total), numSamples)
-	require.Equal(t, uint32(12), tLen)
-	require.Equal(t, uint32(82), vLen)
+	require.Equal(t, uint32(10), tLen)
+	require.Equal(t, uint32(80), vLen)
 }
 
 func BenchmarkBytesChunk_Appender(b *testing.B) {
