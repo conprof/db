@@ -270,7 +270,7 @@ func TestBlockSize(t *testing.T) {
 
 func TestReadIndexFormatV1(t *testing.T) {
 	// The block here was produced at the commit
-	// github.com/conprof/db @ 30aa919da76ad3bb2934f2a87c229b95508e5753:
+	// github.com/conprof/db @ 00e7db2f934a38ea0c836f88f96a0f197c62d744:
 	//{
 	//	db, _ := Open(filepath.Join("testdata", "index_format_v1"), nil, nil, nil)
 	//	app := db.Appender(context.Background())
