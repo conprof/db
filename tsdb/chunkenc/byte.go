@@ -59,7 +59,8 @@ type BytesChunk struct {
 	tc *TimestampChunk
 	vc *ValueChunk
 
-	b []byte
+	b   []byte
+	num uint16
 }
 
 func NewBytesChunk() *BytesChunk {
@@ -70,7 +71,7 @@ func NewBytesChunk() *BytesChunk {
 }
 
 func LoadBytesChunk(b []byte) *BytesChunk {
-	_ = binary.BigEndian.Uint16(b[0:2])                  // first 16bit
+	num := binary.BigEndian.Uint16(b[0:2])               // first 16bit
 	timestampChunkLen := binary.BigEndian.Uint32(b[2:6]) // second 32bit
 	valueChunkLen := binary.BigEndian.Uint32(b[6:10])    // third 32bit
 
@@ -80,9 +81,10 @@ func LoadBytesChunk(b []byte) *BytesChunk {
 	valueChunkEnd := valueChunkStart + valueChunkLen
 
 	return &BytesChunk{
-		b:  b,
-		tc: &TimestampChunk{b: b[timestampChunkStart:timestampChunkEnd]},
-		vc: &ValueChunk{b: b[valueChunkStart:valueChunkEnd]},
+		b:   b,
+		num: num,
+		tc:  &TimestampChunk{b: b[timestampChunkStart:timestampChunkEnd], num: num},
+		vc:  &ValueChunk{b: b[valueChunkStart:valueChunkEnd], num: num},
 	}
 }
 
@@ -118,9 +120,10 @@ func (b *BytesChunk) Encoding() Encoding {
 }
 
 func (b *BytesChunk) NumSamples() int {
-	// We append values first.
-	// Therefore the number of timestamps will always be the same as values.
-	return b.tc.NumSamples()
+	if len(b.b) == 0 {
+		return int(b.tc.num)
+	}
+	return int(b.num)
 }
 
 func (b *BytesChunk) Compact() {

@@ -23,11 +23,12 @@ import (
 // The appender should just add the []byte as they are passed, no compression etc. (yet).
 
 type ValueChunk struct {
-	b []byte
+	b   []byte
+	num uint16
 }
 
 func NewValueChunk() *ValueChunk {
-	return &ValueChunk{b: make([]byte, 2, 5000)}
+	return &ValueChunk{b: make([]byte, 0, 5000)}
 }
 
 func (c *ValueChunk) Bytes() []byte {
@@ -39,7 +40,7 @@ func (c *ValueChunk) Encoding() Encoding {
 }
 
 func (c *ValueChunk) NumSamples() int {
-	return int(binary.BigEndian.Uint16(c.Bytes()))
+	return int(c.num)
 }
 
 func (c *ValueChunk) Compact() {
@@ -61,8 +62,6 @@ type valueAppender struct {
 }
 
 func (a *valueAppender) Append(_ int64, v []byte) {
-	num := binary.BigEndian.Uint16(a.c.b)
-
 	if len(v) == 0 {
 		v = []byte(" ")
 	}
@@ -72,8 +71,7 @@ func (a *valueAppender) Append(_ int64, v []byte) {
 
 	a.c.b = append(a.c.b, size...)
 	a.c.b = append(a.c.b, v...)
-
-	binary.BigEndian.PutUint16(a.c.b, num+1)
+	a.c.num++
 }
 
 func (c *ValueChunk) Iterator(it Iterator) *valueIterator {
@@ -83,8 +81,8 @@ func (c *ValueChunk) Iterator(it Iterator) *valueIterator {
 	}
 
 	return &valueIterator{
-		br:       bytes.NewReader(c.b[2:]),
-		numTotal: binary.BigEndian.Uint16(c.b),
+		br:       bytes.NewReader(c.b),
+		numTotal: c.num,
 	}
 }
 

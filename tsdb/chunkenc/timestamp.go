@@ -51,7 +51,8 @@ import (
 
 // TimestampChunk holds only timestamps encoded with double delta.
 type TimestampChunk struct {
-	b []byte
+	b   []byte
+	num uint16
 }
 
 // NewTimestampChunk returns a new chunk with Timestamp encoding of the given size.
@@ -61,8 +62,8 @@ func NewTimestampChunk() *TimestampChunk {
 	// All timestamps occupy around 130-150 bytes leaving 4850bytes for the samples.
 	// This is around 40bytes per sample.
 	// If the appended samples require more space can increase this array size.
-	b := make([]byte, 2, 5000)
-	return &TimestampChunk{b: b}
+	b := make([]byte, 0, 5000)
+	return &TimestampChunk{b: b, num: 0}
 }
 
 // Encoding returns the encoding type.
@@ -77,7 +78,7 @@ func (c *TimestampChunk) Bytes() []byte {
 
 // NumSamples returns the number of samples in the chunk.
 func (c *TimestampChunk) NumSamples() int {
-	return int(binary.BigEndian.Uint16(c.Bytes()))
+	return int(c.num)
 }
 
 func (c *TimestampChunk) Compact() {
@@ -118,8 +119,8 @@ func (c *TimestampChunk) iterator(it Iterator) *timestampsIterator {
 		return bytesIter
 	}
 	return &timestampsIterator{
-		br:       bytes.NewReader(c.b[2:]),
-		numTotal: binary.BigEndian.Uint16(c.b),
+		br:       bytes.NewReader(c.b),
+		numTotal: c.num,
 		t:        math.MinInt64,
 	}
 }
@@ -139,12 +140,11 @@ type timestampAppender struct {
 func (a *timestampAppender) Append(t int64, _ []byte) {
 	var tDelta uint64
 	var tt uint64
-	num := binary.BigEndian.Uint16(a.b.b)
 
-	if num == 0 {
+	if a.b.num == 0 {
 		tt = uint64(t)
 
-	} else if num == 1 {
+	} else if a.b.num == 1 {
 		tDelta = uint64(t - a.t)
 		tt = tDelta
 
@@ -159,9 +159,8 @@ func (a *timestampAppender) Append(t int64, _ []byte) {
 	a.b.b = append(a.b.b, time...)
 
 	a.t = t
-	binary.BigEndian.PutUint16(a.b.b, num+1)
-
 	a.tDelta = tDelta
+	a.b.num++
 }
 
 type timestampsIterator struct {
@@ -194,8 +193,7 @@ func (it *timestampsIterator) At() (int64, []byte) {
 }
 
 func (it *timestampsIterator) Reset(b []byte) {
-	it.br = bytes.NewReader(b[2:])
-	it.numTotal = binary.BigEndian.Uint16(b)
+	it.br = bytes.NewReader(b)
 	it.t = math.MinInt64
 	it.numRead = 0
 	it.t = 0
