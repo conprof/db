@@ -140,7 +140,7 @@ func (q *blockQuerier) Select(sortSeries bool, hints *storage.SelectHints, ms ..
 		}
 		if hints.Func == "timestamps" {
 			// When only querying timestamps we don't care about values.
-			return newBlockSeriesSet(q.index, newChunkTimestampReader(q.chunks), q.tombstones, p, mint, maxt)
+			return newBlockSeriesSet(q.index, newTimestampChunkReader(q.chunks), q.tombstones, p, mint, maxt)
 		}
 	}
 
@@ -625,7 +625,7 @@ func (p *populateWithDelChunkSeriesIterator) Next() bool {
 	}
 
 	// Re-encode the chunk if iterator is provider. This means that it has some samples to be deleted or chunk is opened.
-	newChunk := chunkenc.NewBytesTimestampsChunk()
+	newChunk := chunkenc.NewBytesChunk()
 	app, err := newChunk.Appender()
 	if err != nil {
 		p.err = err
@@ -841,7 +841,7 @@ type nopChunkReader struct {
 
 func newNopChunkReader() ChunkReader {
 	return nopChunkReader{
-		emptyChunk: chunkenc.NewBytesTimestampsChunk(),
+		emptyChunk: chunkenc.NewBytesChunk(),
 	}
 }
 

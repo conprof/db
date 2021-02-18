@@ -49,38 +49,38 @@ import (
 	"math"
 )
 
-// TimestampDoubleDeltaChunk holds only timestamps encoded with double delta.
-type TimestampDoubleDeltaChunk struct {
+// TimestampChunk holds only timestamps encoded with double delta.
+type TimestampChunk struct {
 	b []byte
 }
 
-// NewTimestampDoubleDeltaChunk returns a new chunk with Timestamp encoding of the given size.
-func NewTimestampDoubleDeltaChunk() *TimestampDoubleDeltaChunk {
-	// Each chunk holds arround 120 samples.
-	// 2 bytes are used for the Sumples count.
-	// All timestamps occupy arround 130-150 bytes leaving 4850bytes for the samples.
-	// This is arround 40bytes per sample.
+// NewTimestampChunk returns a new chunk with Timestamp encoding of the given size.
+func NewTimestampChunk() *TimestampChunk {
+	// Each chunk holds around 120 samples.
+	// 2 bytes are used for the Samples count.
+	// All timestamps occupy around 130-150 bytes leaving 4850bytes for the samples.
+	// This is around 40bytes per sample.
 	// If the appended samples require more space can increase this array size.
 	b := make([]byte, 2, 5000)
-	return &TimestampDoubleDeltaChunk{b: b}
+	return &TimestampChunk{b: b}
 }
 
 // Encoding returns the encoding type.
-func (c *TimestampDoubleDeltaChunk) Encoding() Encoding {
-	return EncDoubleDeltaTimestamps
+func (c *TimestampChunk) Encoding() Encoding {
+	return EncTimestamps
 }
 
 // Bytes returns the underlying byte slice of the chunk.
-func (c *TimestampDoubleDeltaChunk) Bytes() []byte {
+func (c *TimestampChunk) Bytes() []byte {
 	return c.b
 }
 
 // NumSamples returns the number of samples in the chunk.
-func (c *TimestampDoubleDeltaChunk) NumSamples() int {
+func (c *TimestampChunk) NumSamples() int {
 	return int(binary.BigEndian.Uint16(c.Bytes()))
 }
 
-func (c *TimestampDoubleDeltaChunk) Compact() {
+func (c *TimestampChunk) Compact() {
 	if l := len(c.b); cap(c.b) > l+chunkCompactCapacityThreshold {
 		buf := make([]byte, l)
 		copy(buf, c.b)
@@ -89,7 +89,7 @@ func (c *TimestampDoubleDeltaChunk) Compact() {
 }
 
 // Appender implements the Chunk interface.
-func (c *TimestampDoubleDeltaChunk) Appender() (*timestampAppender, error) {
+func (c *TimestampChunk) Appender() (*timestampAppender, error) {
 	it := c.iterator(nil)
 
 	// To get an appender we must know the state it would have if we had
@@ -109,7 +109,7 @@ func (c *TimestampDoubleDeltaChunk) Appender() (*timestampAppender, error) {
 	return a, nil
 }
 
-func (c *TimestampDoubleDeltaChunk) iterator(it TimestampIterator) *timestampsIterator {
+func (c *TimestampChunk) iterator(it Iterator) *timestampsIterator {
 	// Should iterators guarantee to act on a copy of the data so it doesn't lock append?
 	// When using striped locks to guard access to chunks, probably yes.
 	// Could only copy data if the chunk is not completed yet.
@@ -125,18 +125,18 @@ func (c *TimestampDoubleDeltaChunk) iterator(it TimestampIterator) *timestampsIt
 }
 
 // Iterator implements the Chunk interface.
-func (c *TimestampDoubleDeltaChunk) Iterator(it TimestampIterator) *timestampsIterator {
+func (c *TimestampChunk) Iterator(it Iterator) *timestampsIterator {
 	return c.iterator(it)
 }
 
 type timestampAppender struct {
-	b *TimestampDoubleDeltaChunk
+	b *TimestampChunk
 
 	t      int64
 	tDelta uint64
 }
 
-func (a *timestampAppender) Append(t int64) {
+func (a *timestampAppender) Append(t int64, _ []byte) {
 	var tDelta uint64
 	var tt uint64
 	num := binary.BigEndian.Uint16(a.b.b)
@@ -188,8 +188,9 @@ func (it *timestampsIterator) Seek(t int64) bool {
 	return true
 }
 
-func (it *timestampsIterator) At() int64 {
-	return it.t
+func (it *timestampsIterator) At() (int64, []byte) {
+	// We always return nil as bytes aren't stored in this chunk.
+	return it.t, nil
 }
 
 func (it *timestampsIterator) Reset(b []byte) {
