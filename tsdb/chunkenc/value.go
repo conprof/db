@@ -18,32 +18,32 @@ import (
 	"encoding/binary"
 )
 
-// ValueChunk needs everything the ByteChunk does except timestamps.
-// The ValueIterator should just return []byte like the TimestampChunk just returns timestamps.
+// valueChunk needs everything the ByteChunk does except timestamps.
+// The ValueIterator should just return []byte like the timestampChunk just returns timestamps.
 // The appender should just add the []byte as they are passed, no compression etc. (yet).
 
-type ValueChunk struct {
+type valueChunk struct {
 	b   []byte
 	num uint16
 }
 
-func NewValueChunk() *ValueChunk {
-	return &ValueChunk{b: make([]byte, 0, 5000)}
+func newValueChunk() *valueChunk {
+	return &valueChunk{b: make([]byte, 0, 5000)}
 }
 
-func (c *ValueChunk) Bytes() []byte {
+func (c *valueChunk) Bytes() []byte {
 	return c.b
 }
 
-func (c *ValueChunk) Encoding() Encoding {
+func (c *valueChunk) Encoding() Encoding {
 	return EncValues
 }
 
-func (c *ValueChunk) NumSamples() int {
+func (c *valueChunk) NumSamples() int {
 	return int(c.num)
 }
 
-func (c *ValueChunk) Compact() {
+func (c *valueChunk) Compact() {
 	if l := len(c.b); cap(c.b) > l+chunkCompactCapacityThreshold {
 		buf := make([]byte, l)
 		copy(buf, c.b)
@@ -51,14 +51,14 @@ func (c *ValueChunk) Compact() {
 	}
 }
 
-func (c *ValueChunk) Appender() (*valueAppender, error) {
+func (c *valueChunk) Appender() (*valueAppender, error) {
 	return &valueAppender{
 		c: c,
 	}, nil
 }
 
 type valueAppender struct {
-	c *ValueChunk
+	c *valueChunk
 }
 
 func (a *valueAppender) Append(_ int64, v []byte) {
@@ -74,7 +74,7 @@ func (a *valueAppender) Append(_ int64, v []byte) {
 	a.c.num++
 }
 
-func (c *ValueChunk) Iterator(it Iterator) *valueIterator {
+func (c *valueChunk) Iterator(it Iterator) *valueIterator {
 	if valueIter, ok := it.(*valueIterator); ok {
 		//TODO: valueIter.Reset(c.b)
 		return valueIter

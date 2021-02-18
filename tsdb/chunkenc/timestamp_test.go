@@ -7,7 +7,7 @@ import (
 )
 
 func TestTimestampChunk(t *testing.T) {
-	c := NewTimestampChunk()
+	c := newTimestampChunk()
 	app, err := c.Appender()
 	require.NoError(t, err)
 
@@ -21,7 +21,7 @@ func TestTimestampChunk(t *testing.T) {
 	b := make([]byte, len(c.Bytes()))
 	copy(b, c.Bytes())
 
-	c = &TimestampChunk{
+	c = &timestampChunk{
 		b:   b,
 		num: c.num,
 	}
@@ -35,7 +35,7 @@ func TestTimestampChunk(t *testing.T) {
 }
 
 func TestTimestampsIterator_Seek(t *testing.T) {
-	c := NewTimestampChunk()
+	c := newTimestampChunk()
 	app, err := c.Appender()
 	require.NoError(t, err)
 
