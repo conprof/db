@@ -269,23 +269,22 @@ func TestBlockSize(t *testing.T) {
 }
 
 func TestReadIndexFormatV1(t *testing.T) {
-	/* The block here was produced at the commit
-	   github.com/conprof/db @ d202624dc72c95bfeb2a97d711709cfb7e4424cd:
-	{
-		db, _ := Open(filepath.Join("testdata", "index_format_v1"), nil, nil, nil)
-		app := db.Appender(context.Background())
-		app.Add(labels.FromStrings("foo", "bar"), 1, []byte("2"))
-		app.Add(labels.FromStrings("foo", "baz"), 3, []byte("4"))
-		app.Add(labels.FromStrings("foo", "meh"), 1000*3600*4, []byte("4")) // Not in the block.
-		// Make sure we've enough values for the lack of sorting of postings offsets to show up.
-		for i := 0; i < 100; i++ {
-			app.Add(labels.FromStrings("bar", strconv.FormatInt(int64(i), 10)), 0, []byte("0"))
-		}
-		app.Commit()
-		db.Compact()
-		db.Close()
-	}
-	*/
+	// The block here was produced at the commit
+	// github.com/conprof/db @ 30aa919da76ad3bb2934f2a87c229b95508e5753:
+	//{
+	//	db, _ := Open(filepath.Join("testdata", "index_format_v1"), nil, nil, nil)
+	//	app := db.Appender(context.Background())
+	//	app.Add(labels.FromStrings("foo", "bar"), 1, []byte("2"))
+	//	app.Add(labels.FromStrings("foo", "baz"), 3, []byte("4"))
+	//	app.Add(labels.FromStrings("foo", "meh"), 1000*3600*4, []byte("4")) // Not in the block.
+	//	// Make sure we've enough values for the lack of sorting of postings offsets to show up.
+	//	for i := 0; i < 100; i++ {
+	//		app.Add(labels.FromStrings("bar", strconv.FormatInt(int64(i), 10)), 0, []byte("0"))
+	//	}
+	//	app.Commit()
+	//	db.Compact()
+	//	db.Close()
+	//}
 
 	blockDir := filepath.Join("testdata", "index_format_v1")
 	block, err := OpenBlock(nil, blockDir, nil)
