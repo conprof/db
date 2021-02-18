@@ -59,9 +59,6 @@ type BytesChunk struct {
 	tc *TimestampChunk
 	vc *ValueChunk
 
-	// is the chunk mmaped or still open for appending? (maybe this should just be an entirely separate chunk implementation, for now we can combine but might want to split this eventually)
-	//immutable bool
-	// contains mmaped bytes if that's now the chunk is used
 	b []byte
 }
 
@@ -69,15 +66,15 @@ func NewBytesChunk() *BytesChunk {
 	return &BytesChunk{
 		tc: NewTimestampChunk(),
 		vc: NewValueChunk(),
-		//immutable: false,
 	}
 }
 
 func LoadBytesChunk(b []byte) *BytesChunk {
-	timestampChunkLen := binary.BigEndian.Uint32(b[0:4]) // first 32bit
-	valueChunkLen := binary.BigEndian.Uint32(b[4:8])     // second 32bit
+	_ = binary.BigEndian.Uint16(b[0:2])                  // first 16bit
+	timestampChunkLen := binary.BigEndian.Uint32(b[2:6]) // second 32bit
+	valueChunkLen := binary.BigEndian.Uint32(b[6:10])    // third 32bit
 
-	timestampChunkStart := uint32(8) // after first two 32bit (64bit)
+	timestampChunkStart := uint32(10) // after first 16bit + two 32bit (64bit)
 	timestampChunkEnd := timestampChunkStart + timestampChunkLen
 	valueChunkStart := timestampChunkEnd
 	valueChunkEnd := valueChunkStart + valueChunkLen
@@ -91,9 +88,11 @@ func LoadBytesChunk(b []byte) *BytesChunk {
 
 func (b *BytesChunk) Bytes() []byte {
 	if len(b.b) > 0 {
-		// TODO: Or rather check bool immutable?
 		return b.b
 	}
+
+	dataNumSamples := make([]byte, 2)
+	binary.BigEndian.PutUint16(dataNumSamples, uint16(b.NumSamples()))
 
 	// We store chunk length as uint32 which allows chunks to be up to 4GiB
 
@@ -105,7 +104,8 @@ func (b *BytesChunk) Bytes() []byte {
 
 	// TODO: Probably better with copy()
 
-	data := make([]byte, 0, 2*4+len(b.tc.b)+len(b.vc.b)) // two 32 bits of length for each chunks size and the chunks themselves
+	data := make([]byte, 0, 2+2*4+len(b.tc.b)+len(b.vc.b)) // two 32 bits of length for each chunks size and the chunks themselves
+	data = append(data, dataNumSamples...)
 	data = append(data, dataTCLen...)
 	data = append(data, dataVCLen...)
 	data = append(data, b.tc.b...)

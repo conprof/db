@@ -74,7 +74,6 @@ func (a *valueAppender) Append(_ int64, v []byte) {
 	a.c.b = append(a.c.b, v...)
 
 	binary.BigEndian.PutUint16(a.c.b, num+1)
-
 }
 
 func (c *ValueChunk) Iterator(it Iterator) *valueIterator {
