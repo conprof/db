@@ -10,7 +10,7 @@ import (
 
 func TestLoadBytesChunk(t *testing.T) {
 	// tree samples added (0,conprof) (1,conprof) (2,conprof)
-	bytes := []byte{0, 0, 0, 5, 0, 0, 0, 26, 0, 3, 0, 1, 0, 0, 3, 7, 99, 111, 110, 112, 114, 111, 102, 7, 99, 111, 110, 112, 114, 111, 102, 7, 99, 111, 110, 112, 114, 111, 102}
+	bytes := []byte{0, 3, 0, 0, 0, 5, 0, 0, 0, 26, 0, 3, 0, 1, 0, 0, 3, 7, 99, 111, 110, 112, 114, 111, 102, 7, 99, 111, 110, 112, 114, 111, 102, 7, 99, 111, 110, 112, 114, 111, 102}
 
 	// Create new BytesChunk with previous bytes
 	c := LoadBytesChunk(bytes)
@@ -45,11 +45,13 @@ func TestBytesChunk_Appender(t *testing.T) {
 	require.Len(t, c.b, 0) // Isn't populated yet
 
 	bytes := c.Bytes()
-	require.Len(t, bytes, 102) // 12+82 (chunks) + 4*2 (two uint64)
+	require.Len(t, bytes, 104) // 2 (numSamples) + 2*4 (two chunk length) + 12+82 (chunks)
 
-	tLen := binary.BigEndian.Uint32(bytes[0:])
-	vLen := binary.BigEndian.Uint32(bytes[4:])
+	numSamples := binary.BigEndian.Uint16(bytes[0:])
+	tLen := binary.BigEndian.Uint32(bytes[2:])
+	vLen := binary.BigEndian.Uint32(bytes[6:])
 
+	require.Equal(t, uint16(total), numSamples)
 	require.Equal(t, uint32(12), tLen)
 	require.Equal(t, uint32(82), vLen)
 }
