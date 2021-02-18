@@ -488,7 +488,7 @@ outer:
 // Start the queue manager sending samples to the remote storage.
 // Does not block.
 func (t *QueueManager) Start() {
-	// Register and initialise some metrics.
+	// Register and initialize some metrics.
 	t.metrics.register()
 	t.metrics.shardCapacity.Set(float64(t.cfg.Capacity))
 	t.metrics.maxNumShards.Set(float64(t.cfg.MaxShards))
@@ -663,7 +663,7 @@ func (t *QueueManager) updateShardsLoop() {
 	}
 }
 
-// shouldReshard returns if resharding should occur
+// shouldReshard returns if resharding should occur.
 func (t *QueueManager) shouldReshard(desiredShards int) bool {
 	if desiredShards == t.numShards {
 		return false
@@ -1038,7 +1038,7 @@ func (s *shards) sendSamplesWithBackoff(ctx context.Context, samples []prompb.Ti
 	return nil
 }
 
-func sendWriteRequestWithBackoff(ctx context.Context, cfg config.QueueConfig, s WriteClient, l log.Logger, req []byte, attempt func(int) error, onRetry func()) error {
+func sendWriteRequestWithBackoff(ctx context.Context, cfg config.QueueConfig, _ WriteClient, l log.Logger, _ []byte, attempt func(int) error, onRetry func()) error {
 	backoff := cfg.MinBackoff
 	try := 0
 

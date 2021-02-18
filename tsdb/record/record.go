@@ -28,7 +28,7 @@ import (
 type Type uint8
 
 const (
-	// Unknown is returned for unrecognised WAL record types.
+	// Unknown is returned for unrecognized WAL record types.
 	Unknown Type = 255
 	// Series is used to match WAL records of type Series.
 	Series Type = 1

@@ -58,11 +58,6 @@ func (b *bstream) bytes() []byte {
 
 type bit bool
 
-const (
-	zero bit = false
-	one  bit = true
-)
-
 func (b *bstream) writeBit(bit bit) {
 	if b.count == 0 {
 		b.stream = append(b.stream, 0)

@@ -99,7 +99,7 @@ func TestChunkDiskMapper_WriteChunk_Chunk_IterateChunks(t *testing.T) {
 			}
 		}
 		addChunks(100)
-		hrw.CutNewFile()
+		_ = hrw.CutNewFile()
 		addChunks(10) // For chunks in in-memory buffer.
 	}
 

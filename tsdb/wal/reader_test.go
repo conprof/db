@@ -389,7 +389,6 @@ func TestReaderFuzz_Live(t *testing.T) {
 				require.Equal(t, io.EOF, r.Err(), "expected EOF, got: %v", r.Err())
 				return true
 			}
-
 		outer:
 			for {
 				select {
@@ -402,7 +401,7 @@ func TestReaderFuzz_Live(t *testing.T) {
 					}
 
 					// read to end of segment.
-					readSegment(r)
+					require.True(t, readSegment(r))
 
 					fi, err := os.Stat(SegmentName(dir, seg.i))
 					require.NoError(t, err)
@@ -414,10 +413,10 @@ func TestReaderFuzz_Live(t *testing.T) {
 					r = NewLiveReader(logger, nil, seg)
 
 				case <-readTicker.C:
-					readSegment(r)
+					require.True(t, readSegment(r))
 
 				case <-done:
-					readSegment(r)
+					require.True(t, readSegment(r))
 					break outer
 				}
 			}

@@ -13,7 +13,7 @@
 
 package storage
 
-// lazyGenericSeriesSet is a wrapped series set that is initialised on first call to Next().
+// lazyGenericSeriesSet is a wrapped series set that is initialized on first call to Next().
 type lazyGenericSeriesSet struct {
 	init func() (genericSeriesSet, bool)
 

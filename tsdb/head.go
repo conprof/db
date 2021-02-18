@@ -1407,7 +1407,7 @@ func (h *Head) gc() int64 {
 	return actualMint
 }
 
-// Tombstones returns a new reader over the head's tombstones
+// Tombstones returns a new reader over the head's tombstones.
 func (h *Head) Tombstones() (tombstones.Reader, error) {
 	return h.tombstones, nil
 }

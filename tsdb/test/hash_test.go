@@ -86,7 +86,7 @@ func BenchmarkCRC32_diff(b *testing.B) {
 
 	for i := 0; i < 1000; i++ {
 		b := make([]byte, 512)
-		rand.Read(b)
+		_, _ = rand.Read(b)
 		data = append(data, b)
 	}
 
@@ -106,7 +106,7 @@ func BenchmarkCRC32_diff(b *testing.B) {
 
 		for i := 0; i < b.N; i++ {
 			h.Reset()
-			h.Write(data[i%1000])
+			_, _ = h.Write(data[i%1000])
 			total += h.Sum32()
 		}
 	})
@@ -115,7 +115,7 @@ func BenchmarkCRC32_diff(b *testing.B) {
 
 		for i := 0; i < b.N; i++ {
 			h := crc32.New(ctab)
-			h.Write(data[i%1000])
+			_, _ = h.Write(data[i%1000])
 			total += h.Sum32()
 		}
 	})

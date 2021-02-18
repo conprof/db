@@ -38,7 +38,7 @@ func BenchmarkHeadStripeSeriesCreate(b *testing.B) {
 	defer h.Close()
 
 	for i := 0; i < b.N; i++ {
-		h.getOrCreate(uint64(i), labels.FromStrings("a", strconv.Itoa(i)))
+		_, _, _ = h.getOrCreate(uint64(i), labels.FromStrings("a", strconv.Itoa(i)))
 	}
 }
 
@@ -58,7 +58,7 @@ func BenchmarkHeadStripeSeriesCreateParallel(b *testing.B) {
 	b.RunParallel(func(pb *testing.PB) {
 		for pb.Next() {
 			i := count.Inc()
-			h.getOrCreate(uint64(i), labels.FromStrings("a", strconv.Itoa(int(i))))
+			_, _, _ = h.getOrCreate(uint64(i), labels.FromStrings("a", strconv.Itoa(int(i))))
 		}
 	})
 }

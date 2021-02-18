@@ -69,7 +69,7 @@ func BenchmarkCreateSeries(b *testing.B) {
 	b.ResetTimer()
 
 	for _, s := range series {
-		h.getOrCreate(s.Labels().Hash(), s.Labels())
+		_, _, _ = h.getOrCreate(s.Labels().Hash(), s.Labels())
 	}
 }
 
@@ -193,7 +193,7 @@ func BenchmarkLoadWAL(b *testing.B) {
 				for i := 0; i < b.N; i++ {
 					h, err := NewHead(nil, nil, w, 1000, w.Dir(), nil, chunks.DefaultWriteBufferSize, DefaultStripeSize, nil)
 					require.NoError(b, err)
-					h.Init(0)
+					_ = h.Init(0)
 				}
 			})
 	}
@@ -322,7 +322,7 @@ func TestHead_WALMultiRef(t *testing.T) {
 
 func TestHead_UnknownWALRecord(t *testing.T) {
 	head, w := newTestHead(t, 1000, false)
-	w.Log([]byte{255, 42})
+	_ = w.Log([]byte{255, 42})
 	require.NoError(t, head.Init(0))
 	require.NoError(t, head.Close())
 }

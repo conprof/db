@@ -61,10 +61,10 @@ type BytesChunk struct {
 
 // NewBytesChunk returns a new chunk with Bytes encoding of the given size.
 func NewBytesChunk() *BytesChunk {
-	// Each chunk holds arround 120 samples.
+	// Each chunk holds around 120 samples.
 	// 2 bytes are used for the Sumples count.
-	// All timestamps occupy arround 130-150 bytes leaving 4850bytes for the samples.
-	// This is arround 40bytes per sample.
+	// All timestamps occupy around 130-150 bytes leaving 4850bytes for the samples.
+	// This is around 40bytes per sample.
 	// If the appended samples require more space can increase this array size.
 	b := make([]byte, 2, 5000)
 	return &BytesChunk{b: b}
@@ -255,7 +255,7 @@ func (it *bytesIterator) Next() bool {
 	}
 
 	if it.skipValue {
-		it.br.Seek(int64(sampleLen), io.SeekCurrent)
+		_, _ = it.br.Seek(int64(sampleLen), io.SeekCurrent)
 		it.val = nil
 	} else {
 		it.val = make([]byte, sampleLen)

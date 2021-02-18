@@ -61,7 +61,7 @@ func TestReencodeChunk(t *testing.T) {
 	tc := &TimestampChunk{cb}
 	it := tc.Iterator(nil)
 
-	it, newChunk, err := ReencodeChunk(tc, it)
+	_, newChunk, err := ReencodeChunk(tc, it)
 	require.NoError(t, err)
 	require.Greater(t, len(b), len(newChunk.Bytes()))
 }

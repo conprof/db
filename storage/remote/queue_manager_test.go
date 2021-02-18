@@ -128,7 +128,7 @@ func TestMetadataDelivery(t *testing.T) {
 	defer m.Stop()
 
 	m.AppendMetadata(context.Background(), []scrape.MetricMetadata{
-		scrape.MetricMetadata{
+		{
 			Metric: "prometheus_remote_storage_sent_metadata_bytes_total",
 			Type:   textparse.MetricTypeCounter,
 			Help:   "a nice help text",
@@ -574,7 +574,7 @@ func (c *TestWriteClient) Endpoint() string {
 }
 
 // TestBlockingWriteClient is a queue_manager WriteClient which will block
-// on any calls to Store(), until the request's Context is cancelled, at which
+// on any calls to Store(), until the request's Context is canceled, at which
 // point the `numCalls` property will contain a count of how many times Store()
 // was called.
 type TestBlockingWriteClient struct {

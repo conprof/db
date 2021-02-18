@@ -57,7 +57,7 @@ func ChunkFromSamplesGeneric(s Samples) chunks.Meta {
 	}
 }
 
-// PopulatedChunk creates a chunk populated with samples every second starting at minTime
+// PopulatedChunk creates a chunk populated with samples every second starting at minTime.
 func PopulatedChunk(numSamples int, minTime int64) chunks.Meta {
 	samples := make([]Sample, numSamples)
 	for i := 0; i < numSamples; i++ {

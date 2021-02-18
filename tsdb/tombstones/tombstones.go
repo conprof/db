@@ -315,7 +315,7 @@ func (in Intervals) Add(n Interval) Intervals {
 		return append(in, n)
 	}
 	// Find min and max indexes of intervals that overlap with the new interval.
-	// Intervals are closed [t1, t2] and t is discreet, so if neighbour intervals are 1 step difference
+	// Intervals are closed [t1, t2] and t is discreet, so if neighbor intervals are 1 step difference
 	// to the new one, we can merge those together.
 	mini := sort.Search(len(in), func(i int) bool { return in[i].Maxt >= n.Mint-1 })
 	if mini == len(in) {

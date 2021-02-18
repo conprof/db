@@ -98,7 +98,7 @@ type seriesSamples struct {
 }
 
 // Index: labels -> postings -> chunkMetas -> chunkRef
-// ChunkReader: ref -> vals
+// ChunkReader: ref -> vals.
 func createIdxChkReaders(t *testing.T, tc []seriesSamples) (IndexReader, ChunkReader, int64, int64) {
 	sort.Slice(tc, func(i, j int) bool {
 		return labels.Compare(labels.FromMap(tc[i].lset), labels.FromMap(tc[i].lset)) < 0
@@ -1558,11 +1558,11 @@ func TestPostingsForMatchers(t *testing.T) {
 	}()
 
 	app := h.Appender(context.Background())
-	app.Add(labels.FromStrings("n", "1"), 0, []byte("0"))
-	app.Add(labels.FromStrings("n", "1", "i", "a"), 0, []byte("0"))
-	app.Add(labels.FromStrings("n", "1", "i", "b"), 0, []byte("0"))
-	app.Add(labels.FromStrings("n", "2"), 0, []byte("0"))
-	app.Add(labels.FromStrings("n", "2.5"), 0, []byte("0"))
+	_, _ = app.Add(labels.FromStrings("n", "1"), 0, []byte("0"))
+	_, _ = app.Add(labels.FromStrings("n", "1", "i", "a"), 0, []byte("0"))
+	_, _ = app.Add(labels.FromStrings("n", "1", "i", "b"), 0, []byte("0"))
+	_, _ = app.Add(labels.FromStrings("n", "2"), 0, []byte("0"))
+	_, _ = app.Add(labels.FromStrings("n", "2.5"), 0, []byte("0"))
 	require.NoError(t, app.Commit())
 
 	cases := []struct {

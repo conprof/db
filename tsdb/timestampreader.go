@@ -20,7 +20,7 @@ func (cr chunkTimestampReader) Chunk(ref uint64) (chunkenc.Chunk, error) {
 	return &TimestampChunk{c}, nil
 }
 
-func (cr chunkTimestampReader) Close() error { return cr.Close() }
+func (cr chunkTimestampReader) Close() error { return cr.r.Close() }
 
 type TimestampChunk struct {
 	chunkenc.Chunk
