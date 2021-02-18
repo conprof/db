@@ -44,158 +44,164 @@
 package chunkenc
 
 import (
-	"bytes"
 	"encoding/binary"
-	"io"
-	"math"
 )
 
 const (
 	chunkCompactCapacityThreshold = 32
 )
 
-// BytesChunk holds Bytes encoded sample data.
+// BytesChunk combines the ValueChunk and TimestampChunk.
+// The Appender and Iterator work on both underlying chunks.
+// The reason the BytesChunk is split up, is to allow to iterate over chunks
+// and optionally disable reading values at all, when only timestamps are needed.
 type BytesChunk struct {
+	tc *TimestampChunk
+	vc *ValueChunk
+
+	// is the chunk mmaped or still open for appending? (maybe this should just be an entirely separate chunk implementation, for now we can combine but might want to split this eventually)
+	//immutable bool
+	// contains mmaped bytes if that's now the chunk is used
 	b []byte
 }
 
-// NewBytesChunk returns a new chunk with Bytes encoding of the given size.
 func NewBytesChunk() *BytesChunk {
-	// Each chunk holds around 120 samples.
-	// 2 bytes are used for the Sumples count.
-	// All timestamps occupy around 130-150 bytes leaving 4850bytes for the samples.
-	// This is around 40bytes per sample.
-	// If the appended samples require more space can increase this array size.
-	b := make([]byte, 2, 5000)
-	return &BytesChunk{b: b}
+	return &BytesChunk{
+		tc: NewTimestampChunk(),
+		vc: NewValueChunk(),
+		//immutable: false,
+	}
 }
 
-// Encoding returns the encoding type.
-func (c *BytesChunk) Encoding() Encoding {
+func LoadBytesChunk(b []byte) *BytesChunk {
+	timestampChunkLen := binary.BigEndian.Uint32(b[0:4]) // first 32bit
+	valueChunkLen := binary.BigEndian.Uint32(b[4:8])     // second 32bit
+
+	timestampChunkStart := uint32(8) // after first two 32bit (64bit)
+	timestampChunkEnd := timestampChunkStart + timestampChunkLen
+	valueChunkStart := timestampChunkEnd
+	valueChunkEnd := valueChunkStart + valueChunkLen
+
+	return &BytesChunk{
+		b:  b,
+		tc: &TimestampChunk{b: b[timestampChunkStart:timestampChunkEnd]},
+		vc: &ValueChunk{b: b[valueChunkStart:valueChunkEnd]},
+	}
+}
+
+func (b *BytesChunk) Bytes() []byte {
+	if len(b.b) > 0 {
+		// TODO: Or rather check bool immutable?
+		return b.b
+	}
+
+	// We store chunk length as uint32 which allows chunks to be up to 4GiB
+
+	dataTCLen := make([]byte, 4)
+	binary.BigEndian.PutUint32(dataTCLen, uint32(len(b.tc.b)))
+
+	dataVCLen := make([]byte, 4)
+	binary.BigEndian.PutUint32(dataVCLen, uint32(len(b.vc.b)))
+
+	// TODO: Probably better with copy()
+
+	data := make([]byte, 0, 2*4+len(b.tc.b)+len(b.vc.b)) // two 32 bits of length for each chunks size and the chunks themselves
+	data = append(data, dataTCLen...)
+	data = append(data, dataVCLen...)
+	data = append(data, b.tc.b...)
+	data = append(data, b.vc.b...)
+	return data
+}
+
+func (b *BytesChunk) Encoding() Encoding {
 	return EncBytes
 }
 
-// Bytes returns the underlying byte slice of the chunk.
-func (c *BytesChunk) Bytes() []byte {
-	return c.b
+func (b *BytesChunk) NumSamples() int {
+	// We append values first.
+	// Therefore the number of timestamps will always be the same as values.
+	return b.tc.NumSamples()
 }
 
-// NumSamples returns the number of samples in the chunk.
-func (c *BytesChunk) NumSamples() int {
-	return int(binary.BigEndian.Uint16(c.Bytes()))
+func (b *BytesChunk) Compact() {
+	b.tc.Compact()
+	b.vc.Compact()
 }
 
-func (c *BytesChunk) Compact() {
-	if l := len(c.b); cap(c.b) > l+chunkCompactCapacityThreshold {
-		buf := make([]byte, l)
-		copy(buf, c.b)
-		c.b = buf
+func (b *BytesChunk) Appender() (Appender, error) {
+	tapp, err := b.tc.Appender()
+	if err != nil {
+		return nil, err
 	}
-}
-
-// Appender implements the Chunk interface.
-func (c *BytesChunk) Appender() (Appender, error) {
-	it := c.iterator(nil)
-
-	// To get an appender we must know the state it would have if we had
-	// appended all existing data from scratch.
-	// We iterate through the end and populate via the iterator's state.
-	for it.Next() {
-	}
-	if err := it.Err(); err != nil {
+	vapp, err := b.vc.Appender()
+	if err != nil {
 		return nil, err
 	}
 
-	a := &bytesAppender{
-		b:      c,
-		t:      it.t,
-		tDelta: it.tDelta,
-	}
-	return a, nil
+	return &BytesAppender{
+		ta: tapp,
+		va: vapp,
+	}, nil
 }
 
-func (c *BytesChunk) iterator(it Iterator) *bytesIterator {
-	// Should iterators guarantee to act on a copy of the data so it doesn't lock append?
-	// When using striped locks to guard access to chunks, probably yes.
-	// Could only copy data if the chunk is not completed yet.
-	if bytesIter, ok := it.(*bytesIterator); ok {
-		bytesIter.Reset(c.b)
-		return bytesIter
+type BytesAppender struct {
+	ta *timestampAppender
+	va *valueAppender
+}
+
+func (b *BytesAppender) Append(t int64, v []byte) {
+	// Both Appenders implement the Appender interface.
+	// As both only care about one parameter we simply pass the zero value as the other.
+	b.va.Append(0, v)
+	b.ta.Append(t, nil)
+}
+
+func (b *BytesChunk) Iterator(iterator Iterator) Iterator {
+	if iterator != nil {
+		if it, ok := iterator.(*BytesTimestampOnlyIterator); ok {
+			it.tIt = b.tc.Iterator(nil)
+			return it
+		}
 	}
-	return &bytesIterator{
-		br:       bytes.NewReader(c.b[2:]),
-		numTotal: binary.BigEndian.Uint16(c.b),
-		t:        math.MinInt64,
+
+	return &BytesTimestampValuesIterator{
+		tIt: b.tc.Iterator(nil),
+		vIt: b.vc.Iterator(nil),
 	}
 }
 
-// Iterator implements the Chunk interface.
-func (c *BytesChunk) Iterator(it Iterator) Iterator {
-	return c.iterator(it)
-}
-
-type bytesAppender struct {
-	b *BytesChunk
-
-	t      int64
-	tDelta uint64
-}
-
-func (a *bytesAppender) Append(t int64, v []byte) {
-	var tDelta uint64
-	var tt uint64
-	num := binary.BigEndian.Uint16(a.b.b)
-
-	if num == 0 {
-		tt = uint64(t)
-
-	} else if num == 1 {
-		tDelta = uint64(t - a.t)
-		tt = tDelta
-
-	} else {
-		tDelta = uint64(t - a.t)
-		tt = tDelta - a.tDelta
-	}
-
-	// Append the time.
-	buf := make([]byte, binary.MaxVarintLen64)
-	time := buf[:binary.PutUvarint(buf, tt)]
-	a.b.b = append(a.b.b, time...)
-
-	// When adding empty samples we still need to create a non nil byte array to avoid EOF errors.
-	if len(v) == 0 {
-		v = []byte(" ")
-	}
-	// Append size of the sample's byte slice.
-	size := buf[:binary.PutUvarint(buf, uint64(len(v)))]
-	a.b.b = append(a.b.b, size...)
-
-	// Append the sample's bytes.
-	a.b.b = append(a.b.b, v...)
-
-	a.t = t
-	binary.BigEndian.PutUint16(a.b.b, num+1)
-
-	a.tDelta = tDelta
-
-}
-
-type bytesIterator struct {
-	br       *bytes.Reader
+type BytesTimestampValuesIterator struct {
+	tIt      *timestampsIterator
+	vIt      *valueIterator
 	numTotal uint16
-	numRead  uint16
 
-	skipValue bool
-
-	t   int64
-	val []byte
-
-	tDelta uint64
-	err    error
+	numRead uint16
+	err     error
+	t       int64
+	v       []byte
 }
 
-func (it *bytesIterator) Seek(t int64) bool {
+func (it *BytesTimestampValuesIterator) Next() bool {
+	if it.tIt.err != nil {
+		it.err = it.tIt.err // copy over error - good idea?
+		return false
+	}
+	if it.vIt.err != nil {
+		it.err = it.vIt.err // copy over error - good idea?
+		return false
+	}
+
+	if it.tIt.Next() && it.vIt.Next() {
+		it.t, _ = it.tIt.At()
+		_, it.v = it.vIt.At()
+		it.numRead++
+		return true
+	}
+
+	return false
+}
+
+func (it *BytesTimestampValuesIterator) Seek(t int64) bool {
 	if it.err != nil {
 		return false
 	}
@@ -208,69 +214,42 @@ func (it *bytesIterator) Seek(t int64) bool {
 	return true
 }
 
-func (it *bytesIterator) At() (int64, []byte) {
-	return it.t, it.val
+func (it *BytesTimestampValuesIterator) At() (int64, []byte) {
+	var (
+		t int64
+		v []byte
+	)
+	t, _ = it.tIt.At()
+	_, v = it.vIt.At()
+	return t, v
 }
 
-func (it *bytesIterator) Reset(b []byte) {
-	it.br = bytes.NewReader(b[2:])
-	it.numTotal = binary.BigEndian.Uint16(b)
-	it.t = math.MinInt64
-	it.numRead = 0
-	it.t = 0
-	it.val = nil
-	it.tDelta = 0
-	it.err = nil
-	it.skipValue = false
+func (it *BytesTimestampValuesIterator) Err() error {
+	if err := it.tIt.Err(); err != nil {
+		return err
+	}
+	if err := it.vIt.Err(); err != nil {
+		return err
+	}
+	return nil
 }
 
-func (it *bytesIterator) Err() error {
-	return it.err
+type BytesTimestampOnlyIterator struct {
+	tIt *timestampsIterator
 }
 
-func (it *bytesIterator) Next() bool {
-	if it.err != nil || it.numRead == it.numTotal {
-		return false
-	}
-	t, err := binary.ReadUvarint(it.br)
-	if err != nil {
-		it.err = err
-		return false
-	}
+func (it *BytesTimestampOnlyIterator) Next() bool {
+	return it.tIt.Next()
+}
 
-	if it.numRead == 0 {
-		it.t = int64(t)
-	} else if it.numRead == 1 {
-		it.tDelta = t
-		it.t = it.t + int64(it.tDelta)
-	} else {
-		it.tDelta = uint64(int64(it.tDelta) + int64(t))
-		it.t = it.t + int64(it.tDelta)
-	}
+func (it *BytesTimestampOnlyIterator) Seek(t int64) bool {
+	return it.tIt.Seek(t)
+}
 
-	sampleLen, err := binary.ReadUvarint(it.br)
-	if err != nil {
-		it.err = err
-		return false
-	}
+func (it *BytesTimestampOnlyIterator) At() (int64, []byte) {
+	return it.tIt.At()
+}
 
-	if it.skipValue {
-		_, _ = it.br.Seek(int64(sampleLen), io.SeekCurrent)
-		it.val = nil
-	} else {
-		it.val = make([]byte, sampleLen)
-		_, err = it.br.Read(it.val)
-		if err != nil {
-			it.err = err
-			return false
-		}
-
-		// Convert an empty sample value to a nil array as this is what the reader will expect.
-		if bytes.Equal(it.val, []byte(" ")) {
-			it.val = nil
-		}
-	}
-
-	it.numRead++
-	return true
+func (it *BytesTimestampOnlyIterator) Err() error {
+	return it.tIt.Err()
 }

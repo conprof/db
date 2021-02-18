@@ -2026,7 +2026,7 @@ func (s *memSeries) cutNewHeadChunk(mint int64, chunkDiskMapper *chunks.ChunkDis
 	s.mmapCurrentHeadChunk(chunkDiskMapper)
 
 	s.headChunk = &memChunk{
-		chunk:   chunkenc.NewBytesTimestampsChunk(),
+		chunk:   chunkenc.NewBytesChunk(),
 		minTime: mint,
 		maxTime: math.MinInt64,
 	}

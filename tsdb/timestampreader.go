@@ -2,17 +2,17 @@ package tsdb
 
 import "github.com/conprof/db/tsdb/chunkenc"
 
-type chunkTimestampReader struct {
+type timestampChunkReader struct {
 	r ChunkReader
 }
 
-func newChunkTimestampReader(r ChunkReader) ChunkReader {
-	return chunkTimestampReader{
+func newTimestampChunkReader(r ChunkReader) ChunkReader {
+	return timestampChunkReader{
 		r: r,
 	}
 }
 
-func (cr chunkTimestampReader) Chunk(ref uint64) (chunkenc.Chunk, error) {
+func (cr timestampChunkReader) Chunk(ref uint64) (chunkenc.Chunk, error) {
 	c, err := cr.r.Chunk(ref)
 	if err != nil {
 		return nil, err
@@ -20,17 +20,14 @@ func (cr chunkTimestampReader) Chunk(ref uint64) (chunkenc.Chunk, error) {
 	return &TimestampChunk{c}, nil
 }
 
-func (cr chunkTimestampReader) Close() error { return cr.r.Close() }
+func (cr timestampChunkReader) Close() error { return cr.r.Close() }
 
 type TimestampChunk struct {
 	chunkenc.Chunk
 }
 
-func (c *TimestampChunk) Iterator(i chunkenc.Iterator) chunkenc.Iterator {
-	it := c.Chunk.Iterator(i)
-	chunkenc.ConfigureSkipValueIterator(it)
-
-	return it
+func (c *TimestampChunk) Iterator(_ chunkenc.Iterator) chunkenc.Iterator {
+	return c.Chunk.Iterator(&chunkenc.BytesTimestampOnlyIterator{})
 }
 
 func ReencodeChunk(c chunkenc.Chunk, it chunkenc.Iterator) (chunkenc.Iterator, chunkenc.Chunk, error) {
