@@ -64,7 +64,7 @@ type walMetrics struct {
 	corruptions   prometheus.Counter
 }
 
-func newWalMetrics(wal *SegmentWAL, r prometheus.Registerer) *walMetrics {
+func newWalMetrics(_ *SegmentWAL, r prometheus.Registerer) *walMetrics {
 	m := &walMetrics{}
 
 	m.fsyncDuration = prometheus.NewSummary(prometheus.SummaryOpts{
@@ -798,6 +798,7 @@ func (w *SegmentWAL) encodeSeries(buf *encoding.Encbuf, series []record.RefSerie
 	return walSeriesSimple
 }
 
+//nolint:unparam
 func (w *SegmentWAL) encodeSamples(buf *encoding.Encbuf, samples []record.RefSample) uint8 {
 	if len(samples) == 0 {
 		return walSamplesSimple
@@ -890,19 +891,22 @@ func (r *walReader) Read(
 				if seriesf != nil {
 					seriesf(v)
 				}
-				//lint:ignore SA6002 safe to ignore and actually fixing it has some performance penalty.
+				//SA6002 safe to ignore and actually fixing it has some performance penalty.
+				//nolint:staticcheck
 				seriesPool.Put(v[:0])
 			case []record.RefSample:
 				if samplesf != nil {
 					samplesf(v)
 				}
-				//lint:ignore SA6002 safe to ignore and actually fixing it has some performance penalty.
+				//SA6002 safe to ignore and actually fixing it has some performance penalty.
+				//nolint:staticcheck
 				samplePool.Put(v[:0])
 			case []tombstones.Stone:
 				if deletesf != nil {
 					deletesf(v)
 				}
-				//lint:ignore SA6002 safe to ignore and actually fixing it has some performance penalty.
+				//SA6002 safe to ignore and actually fixing it has some performance penalty.
+				//nolint:staticcheck
 				deletePool.Put(v[:0])
 			default:
 				level.Error(r.logger).Log("msg", "unexpected data type")
@@ -1116,7 +1120,7 @@ func (r *walReader) entry(cr io.Reader) (WALEntryType, byte, []byte, error) {
 	return etype, flag, buf, nil
 }
 
-func (r *walReader) decodeSeries(flag byte, b []byte, res *[]record.RefSeries) error {
+func (r *walReader) decodeSeries(_ byte, b []byte, res *[]record.RefSeries) error {
 	dec := encoding.Decbuf{B: b}
 
 	for len(dec.B) > 0 && dec.Err() == nil {
@@ -1144,7 +1148,7 @@ func (r *walReader) decodeSeries(flag byte, b []byte, res *[]record.RefSeries) e
 	return nil
 }
 
-func (r *walReader) decodeSamples(flag byte, b []byte, res *[]record.RefSample) error {
+func (r *walReader) decodeSamples(_ byte, b []byte, res *[]record.RefSample) error {
 	if len(b) == 0 {
 		return nil
 	}
@@ -1178,7 +1182,7 @@ func (r *walReader) decodeSamples(flag byte, b []byte, res *[]record.RefSample) 
 	return nil
 }
 
-func (r *walReader) decodeDeletes(flag byte, b []byte, res *[]tombstones.Stone) error {
+func (r *walReader) decodeDeletes(_ byte, b []byte, res *[]tombstones.Stone) error {
 	dec := &encoding.Decbuf{B: b}
 
 	for dec.Len() > 0 && dec.Err() == nil {
@@ -1198,7 +1202,7 @@ func (r *walReader) decodeDeletes(flag byte, b []byte, res *[]tombstones.Stone) 
 	return nil
 }
 
-func deprecatedWALExists(logger log.Logger, dir string) (bool, error) {
+func deprecatedWALExists(_ log.Logger, dir string) (bool, error) {
 	// Detect whether we still have the old WAL.
 	fns, err := sequenceFiles(dir)
 	if err != nil && !os.IsNotExist(err) {

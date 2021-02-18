@@ -149,7 +149,7 @@ type RecoverableError struct {
 	error
 }
 
-// Store sends a batch of samples to the HTTP endpoint, the request is the proto marshalled
+// Store sends a batch of samples to the HTTP endpoint, the request is the proto marshaled
 // and encoded bytes from codec.go.
 func (c *Client) Store(ctx context.Context, req []byte) error {
 	httpReq, err := http.NewRequest("POST", c.url.String(), bytes.NewReader(req))
@@ -185,7 +185,7 @@ func (c *Client) Store(ctx context.Context, req []byte) error {
 		return RecoverableError{err}
 	}
 	defer func() {
-		io.Copy(ioutil.Discard, httpResp.Body)
+		_, _ = io.Copy(ioutil.Discard, httpResp.Body)
 		httpResp.Body.Close()
 	}()
 
@@ -263,7 +263,7 @@ func (c *Client) Read(ctx context.Context, query *prompb.Query) (*prompb.QueryRe
 		return nil, errors.Wrap(err, "error sending request")
 	}
 	defer func() {
-		io.Copy(ioutil.Discard, httpResp.Body)
+		_, _ = io.Copy(ioutil.Discard, httpResp.Body)
 		httpResp.Body.Close()
 	}()
 	c.readQueriesDuration.Observe(time.Since(start).Seconds())

@@ -696,7 +696,7 @@ func (b *blockSeriesSet) At() storage.Series {
 }
 
 // blockChunkSeriesSet allows to iterate over sorted, populated series with applied tombstones.
-// Series with all deleted chunks are still present as Labelled iterator with no chunks.
+// Series with all deleted chunks are still present as Labeled iterator with no chunks.
 // Chunks are also trimmed to requested [min and max] (keeping samples with min and max timestamps).
 type blockChunkSeriesSet struct {
 	blockBaseSeriesSet

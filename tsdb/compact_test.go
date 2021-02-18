@@ -160,7 +160,7 @@ func TestNoPanicFor0Tombstones(t *testing.T) {
 	c, err := NewLeveledCompactor(context.Background(), nil, nil, []int64{50}, nil)
 	require.NoError(t, err)
 
-	c.plan(metas)
+	_, _ = c.plan(metas)
 }
 
 func TestLeveledCompactor_plan(t *testing.T) {
@@ -468,6 +468,7 @@ type nopChunkWriter struct{}
 func (nopChunkWriter) WriteChunks(chunks ...chunks.Meta) error { return nil }
 func (nopChunkWriter) Close() error                            { return nil }
 
+//nolint:unparam
 func samplesForRange(minTime, maxTime int64, maxSamplesPerChunk int) (ret [][]sample) {
 	var curr []sample
 	for i := minTime; i <= maxTime; i++ {
@@ -1097,7 +1098,7 @@ func BenchmarkCompactionFromHead(b *testing.B) {
 			for ln := 0; ln < labelNames; ln++ {
 				app := h.Appender(context.Background())
 				for lv := 0; lv < labelValues; lv++ {
-					app.Add(labels.FromStrings(fmt.Sprintf("%d", ln), fmt.Sprintf("%d%s%d", lv, postingsBenchSuffix, ln)), 0, []byte("0"))
+					_, _ = app.Add(labels.FromStrings(fmt.Sprintf("%d", ln), fmt.Sprintf("%d%s%d", lv, postingsBenchSuffix, ln)), 0, []byte("0"))
 				}
 				require.NoError(b, app.Commit())
 			}
@@ -1168,7 +1169,7 @@ func TestDisableAutoCompactions(t *testing.T) {
 }
 
 // TestCancelCompactions ensures that when the db is closed
-// any running compaction is cancelled to unblock closing the db.
+// any running compaction is canceled to unblock closing the db.
 func TestCancelCompactions(t *testing.T) {
 	tmpdir, err := ioutil.TempDir("", "testCancelCompaction")
 	require.NoError(t, err)

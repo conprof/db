@@ -85,7 +85,7 @@ type Iterator interface {
 	// Iterator is exhausted when the Seek returns false.
 	Seek(t int64) bool
 	// At returns the current timestamp/value pair.
-	// Before the iterator has advanced At behaviour is unspecified.
+	// Before the iterator has advanced At behavior is unspecified.
 	At() (int64, []byte)
 	// Err returns the current error. It should be used only after iterator is
 	// exhausted, that is `Next` or `Seek` returns false.

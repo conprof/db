@@ -237,7 +237,7 @@ func (p *MemPostings) Delete(deleted map[uint64]struct{}) {
 		}
 		p.mtx.RUnlock()
 
-		// For each posting we first analyse whether the postings list is affected by the deletes.
+		// For each posting we first analyze whether the postings list is affected by the deletes.
 		// If yes, we actually reallocate a new postings list.
 		for _, l := range vals {
 			// Only lock for processing one postings list so we don't block reads for too long.

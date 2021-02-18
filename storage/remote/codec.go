@@ -380,7 +380,7 @@ func (c *concreteSeriesIterator) Err() error {
 }
 
 // validateLabelsAndMetricName validates the label names/values and metric names returned from remote read,
-// also making sure that there are no labels with duplicate names
+// also making sure that there are no labels with duplicate names.
 func validateLabelsAndMetricName(ls labels.Labels) error {
 	for i, l := range ls {
 		if l.Name == labels.MetricName && !model.IsValidMetricName(model.LabelValue(l.Value)) {
@@ -450,7 +450,7 @@ func FromLabelMatchers(matchers []*prompb.LabelMatcher) ([]*labels.Matcher, erro
 	return result, nil
 }
 
-// LabelProtosToMetric unpack a []*prompb.Label to a model.Metric
+// LabelProtosToMetric unpack a []*prompb.Label to a model.Metric.
 func LabelProtosToMetric(labelPairs []*prompb.Label) model.Metric {
 	metric := make(model.Metric, len(labelPairs))
 	for _, l := range labelPairs {

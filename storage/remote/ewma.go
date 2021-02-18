@@ -33,6 +33,7 @@ type ewmaRate struct {
 
 // newEWMARate always allocates a new ewmaRate, as this guarantees the atomically
 // accessed int64 will be aligned on ARM.  See prometheus#2666.
+// nolint:unparam
 func newEWMARate(alpha float64, interval time.Duration) *ewmaRate {
 	return &ewmaRate{
 		alpha:    alpha,

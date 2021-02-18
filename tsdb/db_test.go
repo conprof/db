@@ -400,7 +400,7 @@ Outer:
 		smpls := make([]float64, numSamples)
 		for i := int64(0); i < numSamples; i++ {
 			smpls[i] = rand.Float64()
-			app.Add(labels.Labels{{Name: "a", Value: "b"}}, i, []byte(strconv.Itoa(int(smpls[i]))))
+			_, _ = app.Add(labels.Labels{{Name: "a", Value: "b"}}, i, []byte(strconv.Itoa(int(smpls[i]))))
 		}
 
 		require.NoError(t, app.Commit())
@@ -635,7 +635,7 @@ func TestDB_SnapshotWithDelete(t *testing.T) {
 	smpls := make([]float64, numSamples)
 	for i := int64(0); i < numSamples; i++ {
 		smpls[i] = rand.Float64()
-		app.Add(labels.Labels{{Name: "a", Value: "b"}}, i, []byte(strconv.Itoa(int(smpls[i]))))
+		_, _ = app.Add(labels.Labels{{Name: "a", Value: "b"}}, i, []byte(strconv.Itoa(int(smpls[i]))))
 	}
 
 	require.NoError(t, app.Commit())
@@ -905,7 +905,7 @@ func TestWALFlushedOnDBClose(t *testing.T) {
 func TestWALSegmentSizeOptions(t *testing.T) {
 	tests := map[int]func(dbdir string, segmentSize int){
 		// Default Wal Size.
-		0: func(dbDir string, segmentSize int) {
+		0: func(dbDir string, _ int) {
 			filesAndDir, err := ioutil.ReadDir(filepath.Join(dbDir, "wal"))
 			require.NoError(t, err)
 			files := []os.FileInfo{}
@@ -940,7 +940,7 @@ func TestWALSegmentSizeOptions(t *testing.T) {
 			require.Greater(t, int64(segmentSize), lastFile.Size(), "last WAL file size is not smaller than the WALSegmentSize option, filename: %v", lastFile.Name())
 		},
 		// Wal disabled.
-		-1: func(dbDir string, segmentSize int) {
+		-1: func(dbDir string, _ int) {
 			// Check that WAL dir is not there.
 			_, err := os.Stat(filepath.Join(dbDir, "wal"))
 			require.Error(t, err)
@@ -986,7 +986,7 @@ func TestTombstoneClean(t *testing.T) {
 		val := make([]byte, 4)
 		rand.Read(val)
 		smpls[i] = val
-		app.Add(labels.Labels{{Name: "a", Value: "b"}}, i, smpls[i])
+		_, _ = app.Add(labels.Labels{{Name: "a", Value: "b"}}, i, smpls[i])
 	}
 
 	require.NoError(t, app.Commit())
@@ -3021,7 +3021,7 @@ func TestReadingNewlyAppendedDataToPreviousDB(t *testing.T) {
 		app := db.Appender(ctx)
 
 		b := bytes.NewBuffer(nil)
-		pprof.WriteHeapProfile(b)
+		_ = pprof.WriteHeapProfile(b)
 		byt := b.Bytes()
 		sample := &testSample{
 			timestamp: timestamp.FromTime(time.Now()),
@@ -3053,7 +3053,7 @@ func TestReadingNewlyAppendedDataToPreviousDB(t *testing.T) {
 		app := db.Appender(ctx)
 
 		b := bytes.NewBuffer(nil)
-		pprof.WriteHeapProfile(b)
+		_ = pprof.WriteHeapProfile(b)
 		byt := b.Bytes()
 		sample := &testSample{
 			timestamp: timestamp.FromTime(time.Now()),

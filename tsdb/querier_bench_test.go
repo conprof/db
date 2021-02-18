@@ -46,7 +46,7 @@ func BenchmarkPostingsForMatchers(b *testing.B) {
 
 	app := h.Appender(context.Background())
 	addSeries := func(l labels.Labels) {
-		app.Add(l, 0, []byte("0"))
+		_, _ = app.Add(l, 0, []byte("0"))
 	}
 
 	for n := 0; n < 10; n++ {
@@ -153,7 +153,7 @@ func BenchmarkQuerierSelect(b *testing.B) {
 	app := h.Appender(context.Background())
 	numSeries := 1000000
 	for i := 0; i < numSeries; i++ {
-		app.Add(labels.FromStrings("foo", "bar", "i", fmt.Sprintf("%d%s", i, postingsBenchSuffix)), int64(i), []byte("0"))
+		_, _ = app.Add(labels.FromStrings("foo", "bar", "i", fmt.Sprintf("%d%s", i, postingsBenchSuffix)), int64(i), []byte("0"))
 	}
 	require.NoError(b, app.Commit())
 

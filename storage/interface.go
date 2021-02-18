@@ -70,7 +70,7 @@ type Querier interface {
 
 	// Select returns a set of series that matches the given label matchers.
 	// Caller can specify if it requires returned series to be sorted. Prefer not requiring sorting for better performance.
-	// It allows passing hints that can help in optimising select, but it's up to implementation how this is used if used at all.
+	// It allows passing hints that can help in optimizing select, but it's up to implementation how this is used if used at all.
 	Select(sortSeries bool, hints *SelectHints, matchers ...*labels.Matcher) SeriesSet
 }
 
@@ -87,7 +87,7 @@ type ChunkQuerier interface {
 
 	// Select returns a set of series that matches the given label matchers.
 	// Caller can specify if it requires returned series to be sorted. Prefer not requiring sorting for better performance.
-	// It allows passing hints that can help in optimising select, but it's up to implementation how this is used if used at all.
+	// It allows passing hints that can help in optimizing select, but it's up to implementation how this is used if used at all.
 	Select(sortSeries bool, hints *SelectHints, matchers ...*labels.Matcher) ChunkSeriesSet
 }
 
