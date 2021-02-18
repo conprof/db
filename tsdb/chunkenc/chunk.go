@@ -127,7 +127,7 @@ func NewPool() Pool {
 	return &pool{
 		xor: sync.Pool{
 			New: func() interface{} {
-				return &BytesChunk{}
+				return NewBytesChunk()
 			},
 		},
 	}
@@ -192,7 +192,7 @@ func FromData(e Encoding, d []byte) (Chunk, error) {
 		panic("nothing should be using XOR encoding")
 	//	return &XORChunk{b: bstream{count: 0, stream: d}}, nil
 	case EncBytes:
-		return &BytesChunk{b: d}, nil
+		return LoadBytesChunk(d), nil
 	}
 	return nil, errors.Errorf("invalid chunk encoding %q", e)
 }
