@@ -1,5 +1,5 @@
 {
-	"ulid": "01EYTS32B9A8CA51DRP5592NA2",
+	"ulid": "01EYTXN5H8BN3JQEBJ27G7R9RJ",
 	"minTime": 0,
 	"maxTime": 7200000,
 	"stats": {
@@ -10,7 +10,7 @@
 	"compaction": {
 		"level": 1,
 		"sources": [
-			"01EYTS32B9A8CA51DRP5592NA2"
+			"01EYTXN5H8BN3JQEBJ27G7R9RJ"
 		]
 	},
 	"version": 1
