@@ -51,13 +51,13 @@ const (
 	chunkCompactCapacityThreshold = 32
 )
 
-// BytesChunk combines the ValueChunk and TimestampChunk.
+// BytesChunk combines the valueChunk and timestampChunk.
 // The Appender and Iterator work on both underlying chunks.
 // The reason the BytesChunk is split up, is to allow to iterate over chunks
 // and optionally disable reading values at all, when only timestamps are needed.
 type BytesChunk struct {
-	tc *TimestampChunk
-	vc *ValueChunk
+	tc *timestampChunk
+	vc *valueChunk
 
 	b   []byte
 	num uint16
@@ -65,8 +65,8 @@ type BytesChunk struct {
 
 func NewBytesChunk() *BytesChunk {
 	return &BytesChunk{
-		tc: NewTimestampChunk(),
-		vc: NewValueChunk(),
+		tc: newTimestampChunk(),
+		vc: newValueChunk(),
 	}
 }
 
@@ -83,8 +83,8 @@ func LoadBytesChunk(b []byte) *BytesChunk {
 	return &BytesChunk{
 		b:   b,
 		num: num,
-		tc:  &TimestampChunk{b: b[timestampChunkStart:timestampChunkEnd], num: num},
-		vc:  &ValueChunk{b: b[valueChunkStart:valueChunkEnd], num: num},
+		tc:  &timestampChunk{b: b[timestampChunkStart:timestampChunkEnd], num: num},
+		vc:  &valueChunk{b: b[valueChunkStart:valueChunkEnd], num: num},
 	}
 }
 

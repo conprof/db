@@ -49,39 +49,39 @@ import (
 	"math"
 )
 
-// TimestampChunk holds only timestamps encoded with double delta.
-type TimestampChunk struct {
+// timestampChunk holds only timestamps encoded with double delta.
+type timestampChunk struct {
 	b   []byte
 	num uint16
 }
 
-// NewTimestampChunk returns a new chunk with Timestamp encoding of the given size.
-func NewTimestampChunk() *TimestampChunk {
+// newTimestampChunk returns a new chunk with Timestamp encoding of the given size.
+func newTimestampChunk() *timestampChunk {
 	// Each chunk holds around 120 samples.
 	// 2 bytes are used for the Samples count.
 	// All timestamps occupy around 130-150 bytes leaving 4850bytes for the samples.
 	// This is around 40bytes per sample.
 	// If the appended samples require more space can increase this array size.
 	b := make([]byte, 0, 5000)
-	return &TimestampChunk{b: b, num: 0}
+	return &timestampChunk{b: b, num: 0}
 }
 
 // Encoding returns the encoding type.
-func (c *TimestampChunk) Encoding() Encoding {
+func (c *timestampChunk) Encoding() Encoding {
 	return EncTimestamps
 }
 
 // Bytes returns the underlying byte slice of the chunk.
-func (c *TimestampChunk) Bytes() []byte {
+func (c *timestampChunk) Bytes() []byte {
 	return c.b
 }
 
 // NumSamples returns the number of samples in the chunk.
-func (c *TimestampChunk) NumSamples() int {
+func (c *timestampChunk) NumSamples() int {
 	return int(c.num)
 }
 
-func (c *TimestampChunk) Compact() {
+func (c *timestampChunk) Compact() {
 	if l := len(c.b); cap(c.b) > l+chunkCompactCapacityThreshold {
 		buf := make([]byte, l)
 		copy(buf, c.b)
@@ -90,7 +90,7 @@ func (c *TimestampChunk) Compact() {
 }
 
 // Appender implements the Chunk interface.
-func (c *TimestampChunk) Appender() (*timestampAppender, error) {
+func (c *timestampChunk) Appender() (*timestampAppender, error) {
 	it := c.iterator(nil)
 
 	// To get an appender we must know the state it would have if we had
@@ -110,7 +110,7 @@ func (c *TimestampChunk) Appender() (*timestampAppender, error) {
 	return a, nil
 }
 
-func (c *TimestampChunk) iterator(it Iterator) *timestampsIterator {
+func (c *timestampChunk) iterator(it Iterator) *timestampsIterator {
 	// Should iterators guarantee to act on a copy of the data so it doesn't lock append?
 	// When using striped locks to guard access to chunks, probably yes.
 	// Could only copy data if the chunk is not completed yet.
@@ -126,12 +126,12 @@ func (c *TimestampChunk) iterator(it Iterator) *timestampsIterator {
 }
 
 // Iterator implements the Chunk interface.
-func (c *TimestampChunk) Iterator(it Iterator) *timestampsIterator {
+func (c *timestampChunk) Iterator(it Iterator) *timestampsIterator {
 	return c.iterator(it)
 }
 
 type timestampAppender struct {
-	b *TimestampChunk
+	b *timestampChunk
 
 	t      int64
 	tDelta uint64

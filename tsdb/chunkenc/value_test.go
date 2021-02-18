@@ -7,7 +7,7 @@ import (
 )
 
 func TestValueChunk(t *testing.T) {
-	c := NewValueChunk()
+	c := newValueChunk()
 	app, err := c.Appender()
 	require.NoError(t, err)
 
