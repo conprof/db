@@ -1,21 +1,34 @@
 package chunkenc
 
 import (
+	"bytes"
 	"encoding/binary"
 	"fmt"
+	"io"
+	"os"
+	"path/filepath"
+	"regexp"
+	"strconv"
 	"testing"
 
+	"github.com/klauspost/compress/gzip"
 	"github.com/stretchr/testify/require"
 )
 
 func TestLoadBytesChunk(t *testing.T) {
-	// tree samples added (0,conprof) (1,conprof) (2,conprof)
+	//c := NewBytesChunk()
+	//app, _ := c.Appender()
+	//app.Append(0, []byte("conprof"))
+	//app.Append(1, []byte("conprof"))
+	//app.Append(2, []byte("conprof"))
+	//fmt.Println(c.Bytes())
+
 	bytes := []byte{
 		0, 3, // numSamples
 		0, 0, 0, 3, // timestampChunk len
-		0, 0, 0, 24, // valueChunk len
+		0, 0, 0, 28, // valueChunk len
 		0, 1, 0, // timestampChunk
-		7, 99, 111, 110, 112, 114, 111, 102, 7, 99, 111, 110, 112, 114, 111, 102, 7, 99, 111, 110, 112, 114, 111, 102, // valueChunk
+		40, 181, 47, 253, 4, 96, 125, 0, 0, 64, 7, 99, 111, 110, 112, 114, 111, 102, 1, 84, 8, 3, 13, 11, 229, 122, 36, 130, // valueChunk compressed
 	}
 
 	// Create new BytesChunk with previous bytes
@@ -27,7 +40,7 @@ func TestLoadBytesChunk(t *testing.T) {
 	require.Equal(t, []byte{0, 1, 0}, c.tc.Bytes())
 	require.Equal(t, 3, c.tc.NumSamples())
 
-	require.Equal(t, []byte{7, 99, 111, 110, 112, 114, 111, 102, 7, 99, 111, 110, 112, 114, 111, 102, 7, 99, 111, 110, 112, 114, 111, 102}, c.vc.Bytes())
+	require.Equal(t, []byte{40, 181, 47, 253, 4, 96, 125, 0, 0, 64, 7, 99, 111, 110, 112, 114, 111, 102, 1, 84, 8, 3, 13, 11, 229, 122, 36, 130}, c.vc.compressed)
 	require.Equal(t, 3, c.vc.NumSamples())
 }
 
@@ -51,7 +64,7 @@ func TestBytesChunk_Appender(t *testing.T) {
 	require.Len(t, c.b, 0) // Isn't populated yet
 
 	bytes := c.Bytes()
-	require.Len(t, bytes, 100) // 2 (numSamples) + 2*4 (two chunk length) + 10+80 (chunks)
+	require.Len(t, bytes, 48) // 2 (numSamples) + 2*4 (two chunk length) + 10+28 (chunks)
 
 	numSamples := binary.BigEndian.Uint16(bytes[0:])
 	tLen := binary.BigEndian.Uint32(bytes[2:])
@@ -59,7 +72,7 @@ func TestBytesChunk_Appender(t *testing.T) {
 
 	require.Equal(t, uint16(total), numSamples)
 	require.Equal(t, uint32(10), tLen)
-	require.Equal(t, uint32(80), vLen)
+	require.Equal(t, uint32(28), vLen)
 }
 
 func BenchmarkBytesChunk_Appender(b *testing.B) {
@@ -227,3 +240,132 @@ func BenchmarkBytesTimestampOnlyIterator_Seek(b *testing.B) {
 		}
 	}
 }
+
+type sample struct {
+	t int64
+	v []byte
+}
+
+func loadSamples() ([]sample, error) {
+	filepathTimestamp, err := regexp.Compile(`(\d{13}).pb.gz$`)
+	if err != nil {
+		return nil, err
+	}
+
+	files, err := filepath.Glob("/home/metalmatze/Downloads/conprof/heap/*.pb.gz")
+	if err != nil {
+		return nil, err
+	}
+
+	samples := make([]sample, 0, len(files))
+	for _, file := range files {
+		submatch := filepathTimestamp.FindStringSubmatch(file)
+		if len(submatch) != 2 {
+			return nil, fmt.Errorf("expected 2 matches in timestamp regexp")
+		}
+		ts, err := strconv.Atoi(submatch[1])
+		if err != nil {
+			return nil, err
+		}
+		f, err := os.Open(file)
+		if err != nil {
+			return nil, err
+		}
+		r, err := gzip.NewReader(f)
+		if err != nil {
+			return nil, err
+		}
+		v := &bytes.Buffer{}
+		_, err = io.Copy(v, r)
+		if err != nil {
+			return nil, err
+		}
+		samples = append(samples, sample{t: int64(ts), v: v.Bytes()})
+	}
+
+	return samples, nil
+}
+
+func BenchmarkBytesAppender(b *testing.B) {
+	//start := time.Now()
+	samples, err := loadSamples()
+	//b.Logf("Loaded %d real samples in %v\n", len(samples), time.Since(start))
+
+	c := NewBytesChunk()
+	app, err := c.Appender()
+	require.NoError(b, err)
+
+	sl := len(samples)
+	uncompressed := 0
+
+	b.ResetTimer()
+	b.ReportAllocs()
+
+	for i := 0; i < b.N; i++ {
+		s := samples[i%sl]
+		app.Append(s.t, s.v)
+		uncompressed += len(s.v)
+	}
+
+	compressed := len(c.Bytes())
+	b.ReportMetric(float64(compressed)/float64(b.N), "bytes/sample")
+
+	if b.N != 1 {
+		b.Logf("Compressed %d samples %s into %s saving %.2f%%\n",
+			b.N,
+			byteSize(uncompressed),
+			byteSize(compressed),
+			100-100*(float64(compressed)/float64(uncompressed)),
+		)
+	}
+}
+
+func byteSize(s int) string {
+	if s > 1024*1024*1024 {
+		return fmt.Sprintf("%.2fGiB", float64(s)/1024/1024/1024)
+	}
+	if s > 1024*1024 {
+		return fmt.Sprintf("%.2fMiB", float64(s)/1024/1024)
+	}
+	if s > 1024 {
+		return fmt.Sprintf("%.2fKiB", float64(s)/1024)
+	}
+	return fmt.Sprintf("%dB", s)
+}
+
+//func TestBytesChunkLength(t *testing.T) {
+//	start := time.Now()
+//	samples, err := loadSamples()
+//	require.NoError(t, err)
+//	t.Logf("Loaded %d real samples in %v\n", len(samples), time.Since(start))
+//
+//	total := 1_500
+//	step := 6
+//
+//	type result struct {
+//		amount int
+//		length float64
+//	}
+//	results := make([]result, 0, total/step)
+//
+//	for i := step; i <= total; i = i + step {
+//		c := NewBytesChunk()
+//		app, err := c.Appender()
+//		require.NoError(t, err)
+//
+//		for j := 0; j < i; j++ {
+//			s := samples[j]
+//			app.Append(s.t, s.v)
+//		}
+//
+//		results = append(results, result{
+//			amount: i,
+//			length: float64(len(c.Bytes())) / float64(i),
+//		})
+//		fmt.Println("done with", i)
+//	}
+//
+//	for _, c := range results {
+//		fmt.Printf("%d\t%.2f\n", c.amount, c.length/1024)
+//	}
+//}

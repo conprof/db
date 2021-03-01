@@ -84,7 +84,7 @@ func LoadBytesChunk(b []byte) *BytesChunk {
 		b:   b,
 		num: num,
 		tc:  &timestampChunk{b: b[timestampChunkStart:timestampChunkEnd], num: num},
-		vc:  &valueChunk{b: b[valueChunkStart:valueChunkEnd], num: num},
+		vc:  &valueChunk{compressed: b[valueChunkStart:valueChunkEnd], num: num},
 	}
 }
 
@@ -96,22 +96,25 @@ func (b *BytesChunk) Bytes() []byte {
 	dataNumSamples := make([]byte, 2)
 	binary.BigEndian.PutUint16(dataNumSamples, uint16(b.NumSamples()))
 
+	dataTimestampChunk := b.tc.Bytes()
+	dataValueChunk := b.vc.Bytes()
+
 	// We store chunk length as uint32 which allows chunks to be up to 4GiB
 
-	dataTCLen := make([]byte, 4)
-	binary.BigEndian.PutUint32(dataTCLen, uint32(len(b.tc.b)))
+	dataTimestampChunkLen := make([]byte, 4)
+	binary.BigEndian.PutUint32(dataTimestampChunkLen, uint32(len(dataTimestampChunk)))
 
-	dataVCLen := make([]byte, 4)
-	binary.BigEndian.PutUint32(dataVCLen, uint32(len(b.vc.b)))
+	dataValueChunkLen := make([]byte, 4)
+	binary.BigEndian.PutUint32(dataValueChunkLen, uint32(len(dataValueChunk)))
 
 	// TODO: Probably better with copy()
 
-	data := make([]byte, 0, 2+2*4+len(b.tc.b)+len(b.vc.b)) // two 32 bits of length for each chunks size and the chunks themselves
+	data := make([]byte, 0, 2+2*4+len(dataTimestampChunk)+len(dataValueChunk)) // two 32 bits of length for each chunks size and the chunks themselves
 	data = append(data, dataNumSamples...)
-	data = append(data, dataTCLen...)
-	data = append(data, dataVCLen...)
-	data = append(data, b.tc.b...)
-	data = append(data, b.vc.b...)
+	data = append(data, dataTimestampChunkLen...)
+	data = append(data, dataValueChunkLen...)
+	data = append(data, dataTimestampChunk...)
+	data = append(data, dataValueChunk...)
 	return data
 }
 

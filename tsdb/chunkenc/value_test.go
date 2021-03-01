@@ -16,7 +16,14 @@ func TestValueChunk(t *testing.T) {
 		app.Append(0, v)
 	}
 
-	require.Equal(t, 80000, len(c.Bytes()))
+	compressed := c.Bytes()
+	require.Equal(t, 43, len(compressed))
+	num := c.NumSamples()
+	require.Equal(t, 10000, num)
+
+	c = newValueChunk()
+	c.compressed = compressed
+	c.num = uint16(num)
 
 	it := c.Iterator(nil)
 

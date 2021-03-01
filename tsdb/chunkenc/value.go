@@ -16,6 +16,9 @@ package chunkenc
 import (
 	"bytes"
 	"encoding/binary"
+	"io"
+
+	"github.com/klauspost/compress/zstd"
 )
 
 // valueChunk needs everything the ByteChunk does except timestamps.
@@ -23,8 +26,9 @@ import (
 // The appender should just add the []byte as they are passed, no compression etc. (yet).
 
 type valueChunk struct {
-	b   []byte
-	num uint16
+	compressed []byte // only read once into b to decompress
+	b          []byte // never read, only written to be able to quickly compress
+	num        uint16
 }
 
 func newValueChunk() *valueChunk {
@@ -32,7 +36,14 @@ func newValueChunk() *valueChunk {
 }
 
 func (c *valueChunk) Bytes() []byte {
-	return c.b
+	buf := &bytes.Buffer{}
+	//w := snappy.NewBufferedWriter(buf)
+	w, _ := zstd.NewWriter(buf, // TODO handle error
+		zstd.WithEncoderLevel(zstd.SpeedFastest),
+	)
+	_, _ = io.Copy(w, bytes.NewBuffer(c.b)) // TODO handle error
+	_ = w.Close()                           // TODO handle error
+	return buf.Bytes()
 }
 
 func (c *valueChunk) Encoding() Encoding {
@@ -80,6 +91,16 @@ func (c *valueChunk) Iterator(it Iterator) *valueIterator {
 		return valueIter
 	}
 
+	if len(c.b) == 0 && len(c.compressed) != 0 {
+		buf := &bytes.Buffer{}
+		//r := snappy.NewReader(bytes.NewBuffer(c.compressed))
+		r, _ := zstd.NewReader(bytes.NewBuffer(c.compressed)) // TODO handle error
+		defer r.Close()
+		_, _ = io.Copy(buf, r)
+		c.b = buf.Bytes()
+		c.compressed = nil
+	}
+
 	return &valueIterator{
 		br:       bytes.NewReader(c.b),
 		numTotal: c.num,
@@ -121,7 +142,7 @@ func (it *valueIterator) Next() bool {
 	return true
 }
 
-func (it *valueIterator) Seek(t int64) bool {
+func (it *valueIterator) Seek(_ int64) bool {
 	// TODO:
 	// This is interesting. We don't know anything about timestamps here.
 	// We could somehow translate timestamp to index?
