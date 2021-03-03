@@ -177,9 +177,8 @@ func (b *BytesChunk) Iterator(iterator Iterator) Iterator {
 }
 
 type BytesTimestampValuesIterator struct {
-	tIt      *timestampsIterator
-	vIt      *valueIterator
-	numTotal uint16
+	tIt *timestampsIterator
+	vIt *valueIterator
 
 	numRead uint16
 	err     error
