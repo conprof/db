@@ -107,6 +107,7 @@ func (c *valueChunk) Iterator(it Iterator) *valueIterator {
 		if err != nil {
 			panic(err)
 		}
+		defer dec.Close()
 		err = dec.Reset(bytes.NewBuffer(c.compressed))
 		if err != nil {
 			panic(err) // TODO don't panic
