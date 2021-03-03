@@ -11,24 +11,23 @@ func TestValueChunk(t *testing.T) {
 	app, err := c.Appender()
 	require.NoError(t, err)
 
+	total := 10_000
 	v := []byte("conprof")
-	for i := 0; i < 10000; i++ {
+	for i := 0; i < total; i++ {
 		app.Append(0, v)
 	}
+	require.Equal(t, total, c.NumSamples())
 
 	compressed := c.Bytes()
 	require.Equal(t, 43, len(compressed))
-	num := c.NumSamples()
-	require.Equal(t, 10000, num)
 
 	c = newValueChunk()
 	c.compressed = compressed
-	c.num = uint16(num)
+	c.num = uint16(total)
 
 	it := c.Iterator(nil)
-
-	for i := 0; i < 10000; i++ {
-		require.True(t, it.Next())
+	for i := 0; i < total; i++ {
+		require.True(t, it.Next(), i)
 		_, v := it.At()
 		require.Equal(t, []byte("conprof"), v)
 	}

@@ -28,7 +28,7 @@ func TestLoadBytesChunk(t *testing.T) {
 		0, 0, 0, 3, // timestampChunk len
 		0, 0, 0, 28, // valueChunk len
 		0, 1, 0, // timestampChunk
-		40, 181, 47, 253, 4, 96, 125, 0, 0, 64, 7, 99, 111, 110, 112, 114, 111, 102, 1, 84, 8, 3, 13, 11, 229, 122, 36, 130, // valueChunk compressed
+		40, 181, 47, 253, 4, 0, 125, 0, 0, 64, 7, 99, 111, 110, 112, 114, 111, 102, 1, 84, 8, 3, 13, 11, 229, 122, 36, 130, // valueChunk compressed
 	}
 
 	// Create new BytesChunk with previous bytes
@@ -40,7 +40,7 @@ func TestLoadBytesChunk(t *testing.T) {
 	require.Equal(t, []byte{0, 1, 0}, c.tc.Bytes())
 	require.Equal(t, 3, c.tc.NumSamples())
 
-	require.Equal(t, []byte{40, 181, 47, 253, 4, 96, 125, 0, 0, 64, 7, 99, 111, 110, 112, 114, 111, 102, 1, 84, 8, 3, 13, 11, 229, 122, 36, 130}, c.vc.compressed)
+	require.Equal(t, []byte{40, 181, 47, 253, 4, 0, 125, 0, 0, 64, 7, 99, 111, 110, 112, 114, 111, 102, 1, 84, 8, 3, 13, 11, 229, 122, 36, 130}, c.vc.compressed)
 	require.Equal(t, 3, c.vc.NumSamples())
 }
 

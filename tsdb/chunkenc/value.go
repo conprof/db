@@ -21,13 +21,15 @@ import (
 	"github.com/klauspost/compress/zstd"
 )
 
+// zstdFrameMagic is the magic beginning of all zstd compressed frames.
+var zstdFrameMagic = []byte{0x28, 0xb5, 0x2f, 0xfd}
+
 // valueChunk needs everything the ByteChunk does except timestamps.
 // The ValueIterator should just return []byte like the timestampChunk just returns timestamps.
-// The appender should just add the []byte as they are passed, no compression etc. (yet).
 
 type valueChunk struct {
 	compressed []byte // only read once into b to decompress
-	b          []byte // never read, only written to be able to quickly compress
+	b          []byte // appended to by Appender and decompressed to by Iterator if compressed before
 	num        uint16
 }
 
@@ -36,14 +38,22 @@ func newValueChunk() *valueChunk {
 }
 
 func (c *valueChunk) Bytes() []byte {
-	buf := &bytes.Buffer{}
-	//w := snappy.NewBufferedWriter(buf)
-	w, _ := zstd.NewWriter(buf, // TODO handle error
-		zstd.WithEncoderLevel(zstd.SpeedFastest),
-	)
-	_, _ = io.Copy(w, bytes.NewBuffer(c.b)) // TODO handle error
-	_ = w.Close()                           // TODO handle error
-	return buf.Bytes()
+	// All samples of the chunk are uncompressed in c.b
+	// Before we return these []byte we compress them with zstd.
+	compressed := &bytes.Buffer{}
+	encoder, err := zstd.NewWriter(compressed, zstd.WithEncoderLevel(zstd.SpeedFastest))
+	if err != nil {
+		panic(err) // TODO don't panic
+	}
+	_, err = io.Copy(encoder, bytes.NewBuffer(c.b))
+	if err != nil {
+		panic(err) // TODO don't panic
+	}
+	err = encoder.Close()
+	if err != nil {
+		panic(err) // TODO don't panic
+	}
+	return compressed.Bytes()
 }
 
 func (c *valueChunk) Encoding() Encoding {
@@ -91,13 +101,22 @@ func (c *valueChunk) Iterator(it Iterator) *valueIterator {
 		return valueIter
 	}
 
-	if len(c.b) == 0 && len(c.compressed) != 0 {
-		buf := &bytes.Buffer{}
-		//r := snappy.NewReader(bytes.NewBuffer(c.compressed))
-		r, _ := zstd.NewReader(bytes.NewBuffer(c.compressed)) // TODO handle error
-		defer r.Close()
-		_, _ = io.Copy(buf, r)
-		c.b = buf.Bytes()
+	// If we haven't decompressed and compressed bytes start with zstd magic number.
+	if len(c.b) == 0 && len(c.compressed) != 0 && bytes.HasPrefix(c.compressed, zstdFrameMagic) {
+		dec, err := zstd.NewReader(nil)
+		if err != nil {
+			panic(err)
+		}
+		err = dec.Reset(bytes.NewBuffer(c.compressed))
+		if err != nil {
+			panic(err) // TODO don't panic
+		}
+		out := &bytes.Buffer{}
+		_, err = io.Copy(out, dec)
+		if err != nil {
+			panic(err) // TODO don't panic
+		}
+		c.b = out.Bytes()
 		c.compressed = nil
 	}
 
