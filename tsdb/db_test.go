@@ -2410,7 +2410,9 @@ func TestChunkWriter_ReadAfterWrite(t *testing.T) {
 	chk3 := tsdbutil.ChunkFromSamples([]tsdbutil.Sample{sample{1, []byte("1")}})
 	chk4 := tsdbutil.ChunkFromSamples([]tsdbutil.Sample{sample{1, []byte("1")}})
 	chk5 := tsdbutil.ChunkFromSamples([]tsdbutil.Sample{sample{1, []byte("1")}})
-	chunkSize := len(chk1.Chunk.Bytes()) + chunks.MaxChunkLengthFieldSize + chunks.ChunkEncodingSize + crc32.Size
+	chk1ChunkBytes, err := chk1.Chunk.Bytes()
+	require.NoError(t, err)
+	chunkSize := len(chk1ChunkBytes) + chunks.MaxChunkLengthFieldSize + chunks.ChunkEncodingSize + crc32.Size
 
 	tests := []struct {
 		chks [][]chunks.Meta
@@ -2550,11 +2552,14 @@ func TestChunkWriter_ReadAfterWrite(t *testing.T) {
 
 			for _, chks := range test.chks {
 				for _, chk := range chks {
+					cBytes, err := chk.Chunk.Bytes()
+					require.NoError(t, err)
+
 					l := make([]byte, binary.MaxVarintLen32)
-					sizeExp += binary.PutUvarint(l, uint64(len(chk.Chunk.Bytes()))) // The length field.
+					sizeExp += binary.PutUvarint(l, uint64(len(cBytes))) // The length field.
 					sizeExp += chunks.ChunkEncodingSize
-					sizeExp += len(chk.Chunk.Bytes()) // The data itself.
-					sizeExp += crc32.Size             // The 4 bytes of crc32
+					sizeExp += len(cBytes) // The data itself.
+					sizeExp += crc32.Size  // The 4 bytes of crc32
 				}
 			}
 			sizeExp += test.expSegmentsCount * chunks.SegmentHeaderSize // The segment header bytes.
@@ -2577,7 +2582,11 @@ func TestChunkWriter_ReadAfterWrite(t *testing.T) {
 				for _, chkExp := range chks {
 					chkAct, err := r.Chunk(chkExp.Ref)
 					require.NoError(t, err)
-					require.Equal(t, chkExp.Chunk.Bytes(), chkAct.Bytes())
+					expBytes, err := chkExp.Chunk.Bytes()
+					require.NoError(t, err)
+					actBytes, err := chkAct.Bytes()
+					require.NoError(t, err)
+					require.Equal(t, expBytes, actBytes)
 				}
 			}
 		})
@@ -2639,7 +2648,11 @@ func TestChunkReader_ConcurrentReads(t *testing.T) {
 
 				chkAct, err := r.Chunk(chunk.Ref)
 				require.NoError(t, err)
-				require.Equal(t, chunk.Chunk.Bytes(), chkAct.Bytes())
+				cBytes, err := chunk.Chunk.Bytes()
+				require.NoError(t, err)
+				actBytes, err := chkAct.Bytes()
+				require.NoError(t, err)
+				require.Equal(t, cBytes, actBytes)
 			}(chk)
 		}
 		wg.Wait()

@@ -22,7 +22,8 @@ func TestTimestampChunk(t *testing.T) {
 	app.Append(8, []byte("abc"))
 	app.Append(9, []byte("abc"))
 
-	b := c.Bytes()
+	b, err := c.Bytes()
+	require.NoError(t, err)
 	cb, err := chunkenc.FromData(chunkenc.EncBytes, b)
 	require.NoError(t, err)
 
@@ -54,7 +55,8 @@ func TestReencodeChunk(t *testing.T) {
 	app.Append(8, []byte("abc"))
 	app.Append(9, []byte("abc"))
 
-	b := c.Bytes()
+	b, err := c.Bytes()
+	require.NoError(t, err)
 	cb, err := chunkenc.FromData(chunkenc.EncBytes, b)
 	require.NoError(t, err)
 
@@ -63,5 +65,7 @@ func TestReencodeChunk(t *testing.T) {
 
 	_, newChunk, err := ReencodeChunk(tc, it)
 	require.NoError(t, err)
-	require.Greater(t, len(b), len(newChunk.Bytes()))
+	newBytes, err := newChunk.Bytes()
+	require.NoError(t, err)
+	require.Greater(t, len(b), len(newBytes))
 }

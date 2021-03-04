@@ -16,10 +16,12 @@ func TestTimestampChunk(t *testing.T) {
 	}
 
 	// First two full samples and rest 1 byte each.
-	require.Equal(t, 10000, len(c.Bytes()))
+	cBytes, err := c.Bytes()
+	require.NoError(t, err)
+	require.Equal(t, 10000, len(cBytes))
 
-	b := make([]byte, len(c.Bytes()))
-	copy(b, c.Bytes())
+	b := make([]byte, len(cBytes))
+	copy(b, cBytes)
 
 	c = &timestampChunk{
 		b:   b,

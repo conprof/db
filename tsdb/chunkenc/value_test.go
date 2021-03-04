@@ -18,7 +18,8 @@ func TestValueChunk(t *testing.T) {
 	}
 	require.Equal(t, total, c.NumSamples())
 
-	compressed := c.Bytes()
+	compressed, err := c.Bytes()
+	require.NoError(t, err)
 	require.Equal(t, 43, len(compressed))
 
 	c = newValueChunk()

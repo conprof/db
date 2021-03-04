@@ -37,23 +37,23 @@ func newValueChunk() *valueChunk {
 	return &valueChunk{b: make([]byte, 0, 5000)}
 }
 
-func (c *valueChunk) Bytes() []byte {
+func (c *valueChunk) Bytes() ([]byte, error) {
 	// All samples of the chunk are uncompressed in c.b
 	// Before we return these []byte we compress them with zstd.
 	compressed := &bytes.Buffer{}
 	encoder, err := zstd.NewWriter(compressed, zstd.WithEncoderLevel(zstd.SpeedFastest))
 	if err != nil {
-		panic(err) // TODO don't panic
+		return nil, err
 	}
 	_, err = io.Copy(encoder, bytes.NewBuffer(c.b))
 	if err != nil {
-		panic(err) // TODO don't panic
+		return nil, err
 	}
 	err = encoder.Close()
 	if err != nil {
-		panic(err) // TODO don't panic
+		return nil, err
 	}
-	return compressed.Bytes()
+	return compressed.Bytes(), nil
 }
 
 func (c *valueChunk) Encoding() Encoding {

@@ -27,7 +27,10 @@ type mockIndexWriter struct {
 }
 
 func copyChunk(c chunkenc.Chunk) (chunkenc.Chunk, error) {
-	b := c.Bytes()
+	b, err := c.Bytes()
+	if err != nil {
+		return nil, err
+	}
 	nb := make([]byte, len(b))
 	copy(nb, b)
 	return chunkenc.FromData(c.Encoding(), nb)

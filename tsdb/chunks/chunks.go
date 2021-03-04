@@ -83,7 +83,11 @@ func (cm *Meta) writeHash(h hash.Hash, buf []byte) error {
 	if _, err := h.Write(buf[:1]); err != nil {
 		return err
 	}
-	if _, err := h.Write(cm.Chunk.Bytes()); err != nil {
+	cBytes, err := cm.Chunk.Bytes()
+	if err != nil {
+		return err
+	}
+	if _, err := h.Write(cBytes); err != nil {
 		return err
 	}
 	return nil
@@ -294,10 +298,15 @@ func (w *Writer) WriteChunks(chks ...Meta) error {
 	)
 
 	for i, chk := range chks {
+		cBytes, err := chk.Chunk.Bytes()
+		if err != nil {
+			return err
+		}
+
 		// Each chunk contains: data length + encoding + the data itself + crc32
 		chkSize := int64(MaxChunkLengthFieldSize) // The data length is a variable length field so use the maximum possible value.
 		chkSize += ChunkEncodingSize              // The chunk encoding.
-		chkSize += int64(len(chk.Chunk.Bytes()))  // The data itself.
+		chkSize += int64(len(cBytes))             // The data itself.
 		chkSize += crc32.Size                     // The 4 bytes of crc32.
 		batchSize += chkSize
 
@@ -364,7 +373,12 @@ func (w *Writer) writeChunks(chks []Meta) error {
 		// the lower 4 bytes are for the segment offset where to start reading this chunk.
 		chk.Ref = seq | uint64(w.n)
 
-		n := binary.PutUvarint(w.buf[:], uint64(len(chk.Chunk.Bytes())))
+		cBytes, err := chk.Chunk.Bytes()
+		if err != nil {
+			return err
+		}
+
+		n := binary.PutUvarint(w.buf[:], uint64(len(cBytes)))
 
 		if err := w.write(w.buf[:n]); err != nil {
 			return err
@@ -373,7 +387,7 @@ func (w *Writer) writeChunks(chks []Meta) error {
 		if err := w.write(w.buf[:1]); err != nil {
 			return err
 		}
-		if err := w.write(chk.Chunk.Bytes()); err != nil {
+		if err := w.write(cBytes); err != nil {
 			return err
 		}
 

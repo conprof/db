@@ -88,16 +88,22 @@ func LoadBytesChunk(b []byte) *BytesChunk {
 	}
 }
 
-func (b *BytesChunk) Bytes() []byte {
+func (b *BytesChunk) Bytes() ([]byte, error) {
 	if len(b.b) > 0 {
-		return b.b
+		return b.b, nil
 	}
 
 	dataNumSamples := make([]byte, 2)
 	binary.BigEndian.PutUint16(dataNumSamples, uint16(b.NumSamples()))
 
-	dataTimestampChunk := b.tc.Bytes()
-	dataValueChunk := b.vc.Bytes()
+	dataTimestampChunk, err := b.tc.Bytes()
+	if err != nil {
+		return nil, err
+	}
+	dataValueChunk, err := b.vc.Bytes()
+	if err != nil {
+		return nil, err
+	}
 
 	// We store chunk length as uint32 which allows chunks to be up to 4GiB
 
@@ -115,7 +121,7 @@ func (b *BytesChunk) Bytes() []byte {
 	data = append(data, dataValueChunkLen...)
 	data = append(data, dataTimestampChunk...)
 	data = append(data, dataValueChunk...)
-	return data
+	return data, nil
 }
 
 func (b *BytesChunk) Encoding() Encoding {

@@ -27,10 +27,14 @@ func TestLoadBytesChunk(t *testing.T) {
 	// Create new BytesChunk with previous bytes
 	c := LoadBytesChunk(bytes)
 
-	require.Equal(t, bytes, c.Bytes())
+	cbytes, err := c.Bytes()
+	require.NoError(t, err)
+	require.Equal(t, bytes, cbytes)
 	require.Equal(t, EncBytes, c.Encoding())
 
-	require.Equal(t, []byte{0, 1, 0}, c.tc.Bytes())
+	tcBytes, err := c.tc.Bytes()
+	require.NoError(t, err)
+	require.Equal(t, []byte{0, 1, 0}, tcBytes)
 	require.Equal(t, 3, c.tc.NumSamples())
 
 	require.Equal(t, []byte{40, 181, 47, 253, 4, 0, 125, 0, 0, 64, 7, 99, 111, 110, 112, 114, 111, 102, 1, 84, 8, 3, 13, 11, 229, 122, 36, 130}, c.vc.compressed)
@@ -56,7 +60,8 @@ func TestBytesChunk_Appender(t *testing.T) {
 	require.Len(t, c.vc.b, 80)
 	require.Len(t, c.b, 0) // Isn't populated yet
 
-	bytes := c.Bytes()
+	bytes, err := c.Bytes()
+	require.NoError(t, err)
 	require.Len(t, bytes, 48) // 2 (numSamples) + 2*4 (two chunk length) + 10+28 (chunks)
 
 	numSamples := binary.BigEndian.Uint16(bytes[0:])
@@ -117,7 +122,8 @@ func TestBytesChunk_IteratorImmutable(t *testing.T) {
 		app.Append(int64(i), v)
 	}
 
-	bytes := c.Bytes()
+	bytes, err := c.Bytes()
+	require.NoError(t, err)
 
 	// Create new immutable BytesChunk
 	c = LoadBytesChunk(bytes)

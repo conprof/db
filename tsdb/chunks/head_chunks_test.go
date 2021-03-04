@@ -74,6 +74,9 @@ func TestChunkDiskMapper_WriteChunk_Chunk_IterateChunks(t *testing.T) {
 				bytesWritten := 0
 				chkCRC32.Reset()
 
+				cBytes, err := chunk.Bytes()
+				require.NoError(t, err)
+
 				binary.BigEndian.PutUint64(buf[bytesWritten:], seriesRef)
 				bytesWritten += SeriesRefSize
 				binary.BigEndian.PutUint64(buf[bytesWritten:], uint64(mint))
@@ -82,20 +85,20 @@ func TestChunkDiskMapper_WriteChunk_Chunk_IterateChunks(t *testing.T) {
 				bytesWritten += MintMaxtSize
 				buf[bytesWritten] = byte(chunk.Encoding())
 				bytesWritten += ChunkEncodingSize
-				n := binary.PutUvarint(buf[bytesWritten:], uint64(len(chunk.Bytes())))
+				n := binary.PutUvarint(buf[bytesWritten:], uint64(len(cBytes)))
 				bytesWritten += n
 
 				expectedBytes = append(expectedBytes, buf[:bytesWritten]...)
-				_, err := chkCRC32.Write(buf[:bytesWritten])
+				_, err = chkCRC32.Write(buf[:bytesWritten])
 				require.NoError(t, err)
-				expectedBytes = append(expectedBytes, chunk.Bytes()...)
-				_, err = chkCRC32.Write(chunk.Bytes())
+				expectedBytes = append(expectedBytes, cBytes...)
+				_, err = chkCRC32.Write(cBytes)
 				require.NoError(t, err)
 
 				expectedBytes = append(expectedBytes, chkCRC32.Sum(nil)...)
 
 				// += seriesRef, mint, maxt, encoding, chunk data len, chunk data, CRC.
-				nextChunkOffset += SeriesRefSize + 2*MintMaxtSize + ChunkEncodingSize + uint64(n) + uint64(len(chunk.Bytes())) + CRCSize
+				nextChunkOffset += SeriesRefSize + 2*MintMaxtSize + ChunkEncodingSize + uint64(n) + uint64(len(cBytes)) + CRCSize
 			}
 		}
 		addChunks(100)
@@ -127,7 +130,11 @@ func TestChunkDiskMapper_WriteChunk_Chunk_IterateChunks(t *testing.T) {
 	for _, exp := range expectedData {
 		actChunk, err := hrw.Chunk(exp.chunkRef)
 		require.NoError(t, err)
-		require.Equal(t, exp.chunk.Bytes(), actChunk.Bytes())
+		expBytes, err := exp.chunk.Bytes()
+		require.NoError(t, err)
+		actBytes, err := actChunk.Bytes()
+		require.NoError(t, err)
+		require.Equal(t, expBytes, actBytes)
 	}
 
 	// Testing IterateAllChunks method.
@@ -149,7 +156,11 @@ func TestChunkDiskMapper_WriteChunk_Chunk_IterateChunks(t *testing.T) {
 
 		actChunk, err := hrw.Chunk(expData.chunkRef)
 		require.NoError(t, err)
-		require.Equal(t, expData.chunk.Bytes(), actChunk.Bytes())
+		expBytes, err := expData.chunk.Bytes()
+		require.NoError(t, err)
+		actBytes, err := actChunk.Bytes()
+		require.NoError(t, err)
+		require.Equal(t, expBytes, actBytes)
 
 		idx++
 		return nil

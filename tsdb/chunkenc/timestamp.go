@@ -72,8 +72,8 @@ func (c *timestampChunk) Encoding() Encoding {
 }
 
 // Bytes returns the underlying byte slice of the chunk.
-func (c *timestampChunk) Bytes() []byte {
-	return c.b
+func (c *timestampChunk) Bytes() ([]byte, error) {
+	return c.b, nil
 }
 
 // NumSamples returns the number of samples in the chunk.

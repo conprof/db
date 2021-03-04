@@ -52,7 +52,7 @@ const (
 // Chunk holds a sequence of sample pairs that can be iterated over and appended to.
 type Chunk interface {
 	// Bytes returns the underlying byte slice of the chunk.
-	Bytes() []byte
+	Bytes() ([]byte, error)
 
 	// Encoding returns the encoding type of the chunk.
 	Encoding() Encoding
