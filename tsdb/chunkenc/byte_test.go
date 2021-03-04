@@ -9,6 +9,7 @@ import (
 )
 
 func TestLoadBytesChunk(t *testing.T) {
+	// Uncomment the following block to generate the bytes used just below.
 	//c := NewBytesChunk()
 	//app, _ := c.Appender()
 	//app.Append(0, []byte("conprof"))
