@@ -22,6 +22,8 @@ import (
 )
 
 // zstdFrameMagic is the magic beginning of all zstd compressed frames.
+// Taken from https://github.com/klauspost/compress/blob/063ee1dad7a10b7caef0432d813ec3b8d72c8a8f/zstd/framedec.go#L59
+// As per standard in https://www.rfc-editor.org/rfc/rfc8478.html#section-3.1.1
 var zstdFrameMagic = []byte{0x28, 0xb5, 0x2f, 0xfd}
 
 // valueChunk needs everything the ByteChunk does except timestamps.
