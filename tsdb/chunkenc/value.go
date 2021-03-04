@@ -51,6 +51,7 @@ func (c *valueChunk) Bytes() ([]byte, error) {
 	if err != nil {
 		return nil, err
 	}
+	defer encoder.Close()
 	_, err = io.Copy(encoder, bytes.NewBuffer(c.b))
 	if err != nil {
 		return nil, err
@@ -120,16 +121,19 @@ func (c *valueChunk) Iterator(it Iterator) *valueIterator {
 		dec, err := zstd.NewReader(nil)
 		if err != nil {
 			vit.err = err
+			return vit
 		}
 		defer dec.Close()
 		err = dec.Reset(bytes.NewBuffer(c.compressed))
 		if err != nil {
 			vit.err = err
+			return vit
 		}
 		out := &bytes.Buffer{}
 		_, err = io.Copy(out, dec)
 		if err != nil {
 			vit.err = err
+			return vit
 		}
 		c.b = out.Bytes()
 		c.compressed = nil
