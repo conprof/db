@@ -101,30 +101,32 @@ func (c *valueChunk) Iterator(it Iterator) *valueIterator {
 		return valueIter
 	}
 
+	vit := &valueIterator{
+		numTotal: c.num,
+	}
+
 	// If we haven't decompressed and compressed bytes start with zstd magic number.
 	if len(c.b) == 0 && len(c.compressed) != 0 && bytes.HasPrefix(c.compressed, zstdFrameMagic) {
 		dec, err := zstd.NewReader(nil)
 		if err != nil {
-			panic(err)
+			vit.err = err
 		}
 		defer dec.Close()
 		err = dec.Reset(bytes.NewBuffer(c.compressed))
 		if err != nil {
-			panic(err) // TODO don't panic
+			vit.err = err
 		}
 		out := &bytes.Buffer{}
 		_, err = io.Copy(out, dec)
 		if err != nil {
-			panic(err) // TODO don't panic
+			vit.err = err
 		}
 		c.b = out.Bytes()
 		c.compressed = nil
 	}
 
-	return &valueIterator{
-		br:       bytes.NewReader(c.b),
-		numTotal: c.num,
-	}
+	vit.br = bytes.NewReader(c.b)
+	return vit
 }
 
 type valueIterator struct {
