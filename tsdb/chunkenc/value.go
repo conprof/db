@@ -40,6 +40,10 @@ func newValueChunk() *valueChunk {
 }
 
 func (c *valueChunk) Bytes() ([]byte, error) {
+	if len(c.b) == 0 {
+		return []byte{}, nil
+	}
+
 	if c.compressed != nil {
 		return c.compressed, nil
 	}
