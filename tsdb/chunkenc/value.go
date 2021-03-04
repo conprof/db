@@ -40,6 +40,10 @@ func newValueChunk() *valueChunk {
 }
 
 func (c *valueChunk) Bytes() ([]byte, error) {
+	if c.compressed != nil {
+		return c.compressed, nil
+	}
+
 	// All samples of the chunk are uncompressed in c.b
 	// Before we return these []byte we compress them with zstd.
 	compressed := &bytes.Buffer{}
@@ -55,7 +59,8 @@ func (c *valueChunk) Bytes() ([]byte, error) {
 	if err != nil {
 		return nil, err
 	}
-	return compressed.Bytes(), nil
+	c.compressed = compressed.Bytes()
+	return c.compressed, nil
 }
 
 func (c *valueChunk) Encoding() Encoding {
@@ -95,6 +100,9 @@ func (a *valueAppender) Append(_ int64, v []byte) {
 	a.c.b = append(a.c.b, size...)
 	a.c.b = append(a.c.b, v...)
 	a.c.num++
+	if len(a.c.compressed) != 0 {
+		a.c.compressed = nil // invalidate compressed bytes after append happened
+	}
 }
 
 func (c *valueChunk) Iterator(it Iterator) *valueIterator {
