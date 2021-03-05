@@ -641,9 +641,20 @@ func (c *compactChunkIterator) Next() bool {
 			break
 		}
 
+		prevChunkBytes, err := prev.Chunk.Bytes()
+		if err != nil {
+			c.err = err
+			return false
+		}
+		nextChunkBytes, err := next.Chunk.Bytes()
+		if err != nil {
+			c.err = err
+			return false
+		}
+
 		if next.MinTime == prev.MinTime &&
 			next.MaxTime == prev.MaxTime &&
-			bytes.Equal(next.Chunk.Bytes(), prev.Chunk.Bytes()) {
+			bytes.Equal(nextChunkBytes, prevChunkBytes) {
 			// 1:1 duplicates, skip it.
 		} else {
 			// We operate on same series, so labels does not matter here.

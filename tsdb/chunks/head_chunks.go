@@ -279,7 +279,12 @@ func (cdm *ChunkDiskMapper) WriteChunk(seriesRef uint64, mint, maxt int64, chk c
 		return 0, ErrChunkDiskMapperClosed
 	}
 
-	if cdm.shouldCutNewFile(len(chk.Bytes())) {
+	cBytes, err := chk.Bytes()
+	if err != nil {
+		return 0, err
+	}
+
+	if cdm.shouldCutNewFile(len(cBytes)) {
 		if err := cdm.cut(); err != nil {
 			return 0, err
 		}
@@ -287,7 +292,7 @@ func (cdm *ChunkDiskMapper) WriteChunk(seriesRef uint64, mint, maxt int64, chk c
 
 	// if len(chk.Bytes())+MaxHeadChunkMetaSize >= writeBufferSize, it means that chunk >= the buffer size;
 	// so no need to flush here, as we have to flush at the end (to not keep partial chunks in buffer).
-	if len(chk.Bytes())+MaxHeadChunkMetaSize < cdm.writeBufferSize && cdm.chkWriter.Available() < MaxHeadChunkMetaSize+len(chk.Bytes()) {
+	if len(cBytes)+MaxHeadChunkMetaSize < cdm.writeBufferSize && cdm.chkWriter.Available() < MaxHeadChunkMetaSize+len(cBytes) {
 		if err := cdm.flushBuffer(); err != nil {
 			return 0, err
 		}
@@ -308,13 +313,13 @@ func (cdm *ChunkDiskMapper) WriteChunk(seriesRef uint64, mint, maxt int64, chk c
 	bytesWritten += MintMaxtSize
 	cdm.byteBuf[bytesWritten] = byte(chk.Encoding())
 	bytesWritten += ChunkEncodingSize
-	n := binary.PutUvarint(cdm.byteBuf[bytesWritten:], uint64(len(chk.Bytes())))
+	n := binary.PutUvarint(cdm.byteBuf[bytesWritten:], uint64(len(cBytes)))
 	bytesWritten += n
 
 	if err := cdm.writeAndAppendToCRC32(cdm.byteBuf[:bytesWritten]); err != nil {
 		return 0, err
 	}
-	if err := cdm.writeAndAppendToCRC32(chk.Bytes()); err != nil {
+	if err := cdm.writeAndAppendToCRC32(cBytes); err != nil {
 		return 0, err
 	}
 	if err := cdm.writeCRC32(); err != nil {
@@ -327,7 +332,7 @@ func (cdm *ChunkDiskMapper) WriteChunk(seriesRef uint64, mint, maxt int64, chk c
 
 	cdm.chunkBuffer.put(chkRef, chk)
 
-	if len(chk.Bytes())+MaxHeadChunkMetaSize >= cdm.writeBufferSize {
+	if len(cBytes)+MaxHeadChunkMetaSize >= cdm.writeBufferSize {
 		// The chunk was bigger than the buffer itself.
 		// Flushing to not keep partial chunks in buffer.
 		if err := cdm.flushBuffer(); err != nil {

@@ -525,7 +525,11 @@ type instrumentedChunkWriter struct {
 
 func (w *instrumentedChunkWriter) WriteChunks(chunks ...chunks.Meta) error {
 	for _, c := range chunks {
-		w.size.Observe(float64(len(c.Chunk.Bytes())))
+		cBytes, err := c.Chunk.Bytes()
+		if err != nil {
+			return err
+		}
+		w.size.Observe(float64(len(cBytes)))
 		w.samples.Observe(float64(c.Chunk.NumSamples()))
 		w.trange.Observe(float64(c.MaxTime - c.MinTime))
 	}
