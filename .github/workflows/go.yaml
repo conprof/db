@@ -20,6 +20,8 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v2
+      - name: go mod download
+        run: go mod download
       - name: golangci-lint
         uses: golangci/golangci-lint-action@v2
         with:
