@@ -2,8 +2,6 @@ name: go
 
 on:
   push:
-    branches:
-      - master
   pull_request:
 
 jobs:
@@ -22,7 +20,11 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v2
+      - name: go mod download
+        run: go mod download
       - name: golangci-lint
         uses: golangci/golangci-lint-action@v2
         with:
           version: v1.37
+          skip-pkg-cache: true
+          skip-build-cache: true

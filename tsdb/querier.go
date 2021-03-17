@@ -140,7 +140,7 @@ func (q *blockQuerier) Select(sortSeries bool, hints *storage.SelectHints, ms ..
 		}
 		if hints.Func == "timestamps" {
 			// When only querying timestamps we don't care about values.
-			return newBlockSeriesSet(q.index, newChunkTimestampReader(q.chunks), q.tombstones, p, mint, maxt)
+			return newBlockSeriesSet(q.index, newTimestampChunkReader(q.chunks), q.tombstones, p, mint, maxt)
 		}
 	}
 

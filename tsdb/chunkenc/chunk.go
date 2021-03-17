@@ -31,21 +31,28 @@ func (e Encoding) String() string {
 		return "XOR"
 	case EncBytes:
 		return "Bytes"
+	case EncTimestamps:
+		return "Timestamps"
+	case EncValues:
+		return "Values"
+	default:
+		return "<unknown>"
 	}
-	return "<unknown>"
 }
 
 // The different available chunk encodings.
 const (
 	EncNone Encoding = iota
 	EncBytes
+	EncTimestamps
+	EncValues
 	EncXOR
 )
 
 // Chunk holds a sequence of sample pairs that can be iterated over and appended to.
 type Chunk interface {
 	// Bytes returns the underlying byte slice of the chunk.
-	Bytes() []byte
+	Bytes() ([]byte, error)
 
 	// Encoding returns the encoding type of the chunk.
 	Encoding() Encoding
@@ -120,7 +127,7 @@ func NewPool() Pool {
 	return &pool{
 		xor: sync.Pool{
 			New: func() interface{} {
-				return &BytesChunk{}
+				return NewBytesChunk()
 			},
 		},
 	}
@@ -134,10 +141,12 @@ func (p *pool) Get(e Encoding, b []byte) (Chunk, error) {
 	//	c.b.stream = b
 	//	c.b.count = 0
 	//	return c, nil
+
+	// needs new case for our new encoding
+	// c.immutable needs to be set = true
+	// (need to double check also where else this Pool is used to see if this immutable thing is safe to do)
 	case EncBytes:
-		c := p.xor.Get().(*BytesChunk)
-		c.b = b
-		return c, nil
+		return LoadBytesChunk(b), nil
 	}
 	return nil, errors.Errorf("invalid chunk encoding %q", e)
 }
@@ -166,6 +175,8 @@ func (p *pool) Put(c Chunk) error {
 		}
 		xc.b = nil
 		p.xor.Put(c)
+	// needs new case for new encoding
+	// needs to reset chunk.immutable = false
 	default:
 		return errors.Errorf("invalid chunk encoding %q", c.Encoding())
 	}
@@ -181,7 +192,7 @@ func FromData(e Encoding, d []byte) (Chunk, error) {
 		panic("nothing should be using XOR encoding")
 	//	return &XORChunk{b: bstream{count: 0, stream: d}}, nil
 	case EncBytes:
-		return &BytesChunk{b: d}, nil
+		return LoadBytesChunk(d), nil
 	}
 	return nil, errors.Errorf("invalid chunk encoding %q", e)
 }

@@ -14,12 +14,15 @@
 package tsdb
 
 import (
+	"context"
+	"fmt"
 	"io/ioutil"
 	"os"
 	"strconv"
 	"testing"
 
 	"github.com/conprof/db/tsdb/chunks"
+	"github.com/prometheus/client_golang/prometheus"
 	"github.com/stretchr/testify/require"
 	"go.uber.org/atomic"
 
@@ -61,4 +64,34 @@ func BenchmarkHeadStripeSeriesCreateParallel(b *testing.B) {
 			_, _, _ = h.getOrCreate(uint64(i), labels.FromStrings("a", strconv.Itoa(int(i))))
 		}
 	})
+}
+
+func BenchmarkHeadAppender(b *testing.B) {
+	chunkDir, err := ioutil.TempDir("", "chunk_dir")
+	require.NoError(b, err)
+
+	r := prometheus.NewRegistry()
+
+	h, err := NewHead(r, nil, nil, 100, chunkDir, nil, chunks.DefaultWriteBufferSize, DefaultStripeSize, nil)
+	require.NoError(b, err)
+	defer h.Close()
+
+	app := h.Appender(context.Background())
+
+	v := []byte("conprof")
+	ref, err := app.Add(labels.Labels{{Name: "app", Value: "conprof"}}, 0, v)
+	require.NoError(b, err)
+
+	for i := 0; i < b.N; i++ {
+		err := app.AddFast(ref, int64(i), v)
+		require.NoError(b, err)
+	}
+	err = app.Commit()
+	require.NoError(b, err)
+
+	families, err := r.Gather()
+	require.NoError(b, err)
+	for _, family := range families {
+		fmt.Printf("%+v\n", family)
+	}
 }
